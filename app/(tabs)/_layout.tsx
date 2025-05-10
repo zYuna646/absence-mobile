@@ -1,14 +1,17 @@
 import { Tabs } from "expo-router";
 import React, { useEffect } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { router, usePathname } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
 import { HapticTab } from "@/components/HapticTab";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useUser } from "@/context/UserContext";
 import { useThemeColor } from "@/constants/Colors";
+import TabIcon from "@/components/ui/TabIcon";
 
+/**
+ * Tab layout configuration for the main app
+ */
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { verifySession, isLoggedIn, isLoading } = useUser();
@@ -54,16 +57,8 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.tabIconDefault,
         tabBarActiveBackgroundColor: colors.tabsSelectedBackground,
         tabBarInactiveBackgroundColor: colors.tabsBackground,
-        tabBarItemStyle: {
-          borderRadius: 100,
-          margin: 5,
-          height: 50,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "500",
-          paddingBottom: 5,
-        },
+        tabBarItemStyle: styles.tabBarItem,
+        tabBarLabelStyle: styles.tabBarLabel,
         // Disable the floating appearance
         tabBarHideOnKeyboard: true,
         tabBarShowLabel: true,
@@ -75,7 +70,7 @@ export default function TabLayout() {
         options={{
           title: "Kunjungan",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="location" size={size} color={color} />
+            <TabIcon name="location" size={size} color={color} />
           ),
         }}
       />
@@ -84,7 +79,7 @@ export default function TabLayout() {
         options={{
           title: "Akun",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <TabIcon name="person" size={size} color={color} />
           ),
         }}
       />
@@ -93,7 +88,7 @@ export default function TabLayout() {
         options={{
           title: "Verifikasi",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkmark-circle" size={size} color={color} />
+            <TabIcon name="checkmark-circle" size={size} color={color} />
           ),
         }}
       />
@@ -102,10 +97,23 @@ export default function TabLayout() {
         options={{
           title: "Dashboard",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid" size={size} color={color} />
+            <TabIcon name="grid" size={size} color={color} />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarItem: {
+    borderRadius: 100,
+    margin: 5,
+    height: 50,
+  },
+  tabBarLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    paddingBottom: 5,
+  },
+});

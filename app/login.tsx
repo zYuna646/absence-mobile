@@ -2,140 +2,26 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   TouchableOpacity,
-  Platform,
   ScrollView,
-  ActivityIndicator,
   Alert,
-  Animated,
   TextStyle,
-  TextInputProps,
-  ViewStyle,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
-import { Picker } from "@react-native-picker/picker";
-import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { useUser, UserRole } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 
-// Dummy data for supervisor dropdown
-const SUPERVISORS = [
-  { id: "1", name: "Dr. Ahmad Surya" },
-  { id: "2", name: "Prof. Budi Santoso" },
-  { id: "3", name: "Dr. Citra Dewi" },
-  { id: "4", name: "Prof. Dimas Purnomo" },
-  { id: "5", name: "Dr. Eva Rahmadhani" },
-];
-
-// Interface for FloatingLabelInput props
-interface FloatingLabelInputProps extends Omit<TextInputProps, "style"> {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  secureTextEntry?: boolean;
-  disabled?: boolean;
-  inputStyle: TextStyle;
-  placeholderTextColor: string;
-  isPassword?: boolean;
-  togglePasswordVisibility?: () => void;
-  passwordVisible?: boolean;
-}
-
-// Custom Floating Label Input Component
-const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
-  label,
-  value,
-  onChangeText,
-  secureTextEntry = false,
-  disabled = false,
-  inputStyle,
-  placeholderTextColor,
-  isPassword = false,
-  togglePasswordVisibility,
-  passwordVisible,
-  ...props
-}) => {
-  const [isFocused, setIsFocused] = useState(false);
-  const animatedIsFocused = useState(new Animated.Value(value ? 1 : 0))[0];
-  const colors = useThemeColor();
-
-  useEffect(() => {
-    Animated.timing(animatedIsFocused, {
-      toValue: isFocused || value ? 1 : 0,
-      duration: 200,
-      useNativeDriver: false,
-    }).start();
-  }, [isFocused, value, animatedIsFocused]);
-
-  const labelStyle = {
-    position: "absolute" as "absolute",
-    left: 16,
-    top: animatedIsFocused.interpolate({
-      inputRange: [0, 1],
-      outputRange: [16, -8],
-    }),
-    fontSize: animatedIsFocused.interpolate({
-      inputRange: [0, 1],
-      outputRange: [16, 12],
-    }),
-    color: animatedIsFocused.interpolate({
-      inputRange: [0, 1],
-      outputRange: [placeholderTextColor, colors.tint],
-    }),
-    backgroundColor: animatedIsFocused.interpolate({
-      inputRange: [0, 1],
-      outputRange: ["transparent", inputStyle.backgroundColor as string],
-    }),
-    paddingHorizontal: animatedIsFocused.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 5],
-    }),
-    zIndex: 1,
-  };
-
-  return (
-    <View style={styles.inputContainer}>
-      <Animated.Text style={labelStyle}>{label}</Animated.Text>
-      <TextInput
-        style={[
-          inputStyle,
-          styles.floatingInput,
-          isPassword && { paddingRight: 50 }, // Add padding for the eye icon
-        ]}
-        value={value}
-        onChangeText={onChangeText}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        secureTextEntry={secureTextEntry}
-        editable={!disabled}
-        blurOnSubmit
-        {...props}
-      />
-      {isPassword && togglePasswordVisibility && (
-        <TouchableOpacity
-          style={styles.eyeIconContainer}
-          onPress={togglePasswordVisibility}
-          disabled={disabled}
-        >
-          <Ionicons
-            name={passwordVisible ? "eye-off" : "eye"}
-            size={22}
-            color={colors.icon}
-          />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-};
+// Import reusable components
+import FloatingLabelInput from "@/components/FloatingLabelInput";
+import AppLogo from "@/components/AppLogo";
+import PrimaryButton from "@/components/PrimaryButton";
 
 export default function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [supervisor, setSupervisor] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const colorScheme = useColorScheme();
@@ -226,15 +112,7 @@ export default function LoginScreen() {
     >
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
-      <View style={styles.logoContainer}>
-        <Text style={[styles.welcomeText, { color: colors.text }]}>
-          Selamat Datang
-        </Text>
-        <Text style={[styles.logoText, { color: colors.tint }]}>DI SIKAD</Text>
-        <Text style={[styles.subtitleText, { color: colors.tint }]}>
-          Sistem Informasi Kehadiran
-        </Text>
-      </View>
+      <AppLogo size="large" showSubtitle={true} />
 
       <View style={styles.formContainer}>
         <FloatingLabelInput
@@ -278,21 +156,13 @@ export default function LoginScreen() {
           </Text>
         )}
 
-        <TouchableOpacity
-          style={[
-            styles.button,
-            { backgroundColor: colors.tint },
-            isLoading && styles.buttonDisabled,
-          ]}
+        <PrimaryButton
+          label="Masuk"
           onPress={handleLogin}
+          loading={isLoading}
           disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : (
-            <Text style={styles.buttonText}>Masuk</Text>
-          )}
-        </TouchableOpacity>
+          style={styles.loginButton}
+        />
       </View>
     </ScrollView>
   );
@@ -304,62 +174,10 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: "center",
   },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 40,
-  },
-  logoText: {
-    fontSize: 36,
-    fontWeight: "bold",
-  },
-  welcomeText: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginTop: 8,
-  },
-  subtitleText: {
-    fontSize: 16,
-  },
   formContainer: {
     width: "100%",
     maxWidth: 400,
     alignSelf: "center",
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  inputContainer: {
-    marginBottom: 5,
-    position: "relative",
-  },
-  input: {
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  floatingInput: {
-    paddingTop: 16,
-    height: 60,
-  },
-  eyeIconContainer: {
-    position: "absolute",
-    right: 16,
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  picker: {
-    height: Platform.OS === "ios" ? 120 : 50,
   },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
@@ -370,21 +188,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  button: {
-    height: 50,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
   errorText: {
     marginTop: 8,
     fontSize: 14,
@@ -392,4 +195,7 @@ const styles = StyleSheet.create({
   spacer: {
     height: 16,
   },
+  loginButton: {
+    marginTop: 20,
+  }
 });
