@@ -84,6 +84,10 @@ export default function LoginScreen() {
       ]
     );
   };
+  
+  const handleRegister = () => {
+    router.navigate("/register");
+  };
 
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
@@ -163,6 +167,17 @@ export default function LoginScreen() {
           disabled={isLoading}
           style={styles.loginButton}
         />
+        
+        <View style={styles.registerContainer}>
+          <Text style={[styles.registerText, { color: colors.text }]}>
+            Belum memiliki akun?
+          </Text>
+          <TouchableOpacity onPress={handleRegister}>
+            <Text style={[styles.registerLink, { color: colors.tint }]}>
+              Daftar Sekarang
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -197,5 +212,19 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginTop: 20,
+  },
+  registerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 24,
+    paddingVertical: 8,
+  },
+  registerText: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  registerLink: {
+    fontSize: 14,
+    fontWeight: "bold",
   }
 });
