@@ -21,7 +21,7 @@ function AuthStateListener({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = pathname === '/login';
+    const inAuthGroup = pathname === '/login' || pathname === '/register';
     
     if (!isLoggedIn && !inAuthGroup) {
       // Redirect to login if not logged in and not already on login screen
