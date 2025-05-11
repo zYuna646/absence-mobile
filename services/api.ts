@@ -58,11 +58,13 @@ export interface AdvisorRegistrationData {
   birthday: string;
   gender: string;
   stase_id: number;
-  type: string;
-  npwp: string;
-  nip: string;
-  location: string;
-  room: string;
+  type: string; // "academic" or "clinic"
+  // Fields for academic preceptor
+  npwp?: string;
+  nip?: string;
+  // Fields for clinic preceptor
+  location?: string;
+  room?: string;
   password: string;
 }
 
@@ -260,21 +262,26 @@ export const api = {
     const url = `${API_URL}${ENDPOINTS.ADVISORS_REGISTER}`;
     
     // Ensure all data is properly formatted
-    const sanitizedData = {
+    const sanitizedData: any = {
       name: data.name.trim(),
       username: data.username.trim(),
       email: data.email.trim(),
       phone: data.phone.trim(),
       birthday: data.birthday.trim(),
       gender: data.gender.trim(),
-      stase_id: Number(data.stase_id),
-      type: data.type.trim(),
-      npwp: data.npwp.trim(),
-      nip: data.nip.trim(),
-      location: data.location.trim(),
-      room: data.room.trim(),
+      stace_id: Number(data.stase_id),
+      type: data.type,
       password: data.password
     };
+    
+    // Add specific fields based on preceptor type
+    if (data.type === "academic") {
+      sanitizedData.npwp = data.npwp?.trim() || "";
+      sanitizedData.nip = data.nip?.trim() || "";
+    } else if (data.type === "clinic") {
+      sanitizedData.location = data.location?.trim() || "";
+      sanitizedData.room = data.room?.trim() || "";
+    }
     
     const options = createRequestOptions("POST", sanitizedData);
     return fetchWithTimeout<any>(url, options);

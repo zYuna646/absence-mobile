@@ -25,7 +25,7 @@ import BiodataForm from "@/components/register/BiodataForm";
 import AccountForm from "@/components/register/AccountForm";
 
 // Types
-type Role = "mahasiswa" | "preseptor_akademik" |  "";
+type Role = "mahasiswa" | "preseptor_akademik" | "preseptor_klinik" | "";
 type Gender = "Laki-laki" | "Perempuan" | "";
 
 interface RegistrationData {
@@ -41,7 +41,7 @@ interface RegistrationData {
   stase_id: number | null;
   phone: string;
   
-  // Fields for preseptor_akademik
+  // Fields for preceptors
   type: string;
   npwp: string;
   nip: string;
@@ -78,8 +78,8 @@ export default function RegisterScreen() {
     stase_id: null,
     phone: "",
     
-    // Fields for preseptor_akademik
-    type: "clinic",
+    // Fields for preceptors
+    type: "",
     npwp: "",
     nip: "",
     location: "",
@@ -102,10 +102,21 @@ export default function RegisterScreen() {
   
   // Handle role change specifically for the RoleSelection component
   const handleRoleChange = (role: Role) => {
-    setFormData(prev => ({
-      ...prev,
+    let updatedData = {
+      ...formData,
       role
-    }));
+    };
+    
+    // Set type based on role
+    if (role === "preseptor_akademik") {
+      updatedData.type = "academic";
+    } else if (role === "preseptor_klinik") {
+      updatedData.type = "clinic";
+    } else {
+      updatedData.type = "";
+    }
+    
+    setFormData(updatedData);
   };
   
   // Validate current step
@@ -151,6 +162,11 @@ export default function RegisterScreen() {
           }
           if (!formData.npwp) {
             Alert.alert("Error", "NPWP wajib diisi");
+            return false;
+          }
+        } else if (formData.role === "preseptor_klinik") {
+          if (formData.stase_id === null) {
+            Alert.alert("Error", "Stase wajib dipilih");
             return false;
           }
           if (!formData.location) {
@@ -274,7 +290,8 @@ export default function RegisterScreen() {
         
         console.log("Submitting student data:", apiData);
         result = await api.registerStudent(apiData);
-      } else if (formData.role === "preseptor_akademik") {
+      } else if (formData.role === "preseptor_akademik" || formData.role === "preseptor_klinik") {
+        // Base data common to both preceptor types
         apiData = {
           name: formData.name,
           username: formData.username,
@@ -284,12 +301,17 @@ export default function RegisterScreen() {
           gender: formData.gender,
           stase_id: formData.stase_id!,
           type: formData.type,
-          npwp: formData.npwp,
-          nip: formData.nip,
-          location: formData.location,
-          room: formData.room,
           password: formData.password
         };
+        
+        // Add specific fields based on preceptor type
+        if (formData.role === "preseptor_akademik") {
+          apiData.npwp = formData.npwp;
+          apiData.nip = formData.nip;
+        } else if (formData.role === "preseptor_klinik") {
+          apiData.location = formData.location;
+          apiData.room = formData.room;
+        }
         
         console.log("Submitting advisor data:", apiData);
         result = await api.registerAdvisor(apiData);

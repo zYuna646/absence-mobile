@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/constants/Colors";
 
-type Role = "mahasiswa" | "preseptor_akademik" | "";
+type Role = "mahasiswa" | "preseptor_akademik" | "preseptor_klinik" | "";
 
 interface RoleSelectionProps {
   value: Role;
@@ -27,6 +27,12 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ value, onChange }) => {
       id: "preseptor_akademik",
       title: "Preseptor Akademik",
       description: "Daftar sebagai dosen pembimbing yang akan memverifikasi kunjungan",
+      icon: "person",
+    },
+    {
+      id: "preseptor_klinik",
+      title: "Preseptor Klinik",
+      description: "Daftar sebagai dokter yang akan memverifikasi kunjungan",
       icon: "person",
     },
 

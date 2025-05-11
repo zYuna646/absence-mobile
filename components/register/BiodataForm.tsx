@@ -21,6 +21,7 @@ interface BiodataFormProps {
     stase_id: number | null;
     phone: string;
     // Fields for advisor
+    type: string;
     npwp: string;
     nip: string;
     location: string;
@@ -50,17 +51,28 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
       setError(null);
       
       try {
-        // Fetch stases data
-        const stasesResponse = await api.getStases();
-        if (stasesResponse.success && stasesResponse.data) {
-          setStases(stasesResponse.data);
-        } else {
-          console.error("Failed to fetch stases:", stasesResponse.message);
-          setError("Gagal memuat data stase");
+        // Fetch stases data for preceptors (both academic and clinic)
+        if (formData.role === "preseptor_akademik" || formData.role === "preseptor_klinik") {
+          const stasesResponse = await api.getStases();
+          if (stasesResponse.success && stasesResponse.data) {
+            setStases(stasesResponse.data);
+          } else {
+            console.error("Failed to fetch stases:", stasesResponse.message);
+            setError("Gagal memuat data stase");
+          }
         }
         
         // Only fetch groups data if role is mahasiswa
         if (formData.role === "mahasiswa") {
+          // Fetch stases data
+          const stasesResponse = await api.getStases();
+          if (stasesResponse.success && stasesResponse.data) {
+            setStases(stasesResponse.data);
+          } else {
+            console.error("Failed to fetch stases:", stasesResponse.message);
+            setError("Gagal memuat data stase");
+          }
+          
           const groupsResponse = await api.getGroups();
           if (groupsResponse.success && groupsResponse.data) {
             setGroups(groupsResponse.data);
@@ -77,7 +89,7 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
       }
     };
     
-    if (formData.role === "mahasiswa" || formData.role === "preseptor_akademik") {
+    if (formData.role === "mahasiswa" || formData.role === "preseptor_akademik" || formData.role === "preseptor_klinik") {
       fetchData();
     }
   }, [formData.role]);
@@ -243,7 +255,7 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
 
   // Render advisor specific fields
   const renderAdvisorFields = () => {
-    if (formData.role !== "preseptor_akademik") return null;
+    if (formData.role !== "preseptor_akademik" && formData.role !== "preseptor_klinik") return null;
     
     return (
       <>
@@ -275,47 +287,55 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
           </Picker>
         </View>
         
-        <FloatingLabelInput
-          label="NIP"
-          value={formData.nip}
-          onChangeText={(value) => onChange("nip", value)}
-          inputStyle={inputStyle}
-          placeholderTextColor={placeholderTextColor}
-          disabled={false}
-        />
+        {/* Academic Preceptor specific fields */}
+        {formData.role === "preseptor_akademik" && (
+          <>
+            <FloatingLabelInput
+              label="NIP"
+              value={formData.nip}
+              onChangeText={(value) => onChange("nip", value)}
+              inputStyle={inputStyle}
+              placeholderTextColor={placeholderTextColor}
+              disabled={false}
+            />
+            
+            <View style={styles.spacer} />
+            
+            <FloatingLabelInput
+              label="NPWP"
+              value={formData.npwp}
+              onChangeText={(value) => onChange("npwp", value)}
+              inputStyle={inputStyle}
+              placeholderTextColor={placeholderTextColor}
+              disabled={false}
+            />
+          </>
+        )}
         
-        <View style={styles.spacer} />
-        
-        <FloatingLabelInput
-          label="NPWP"
-          value={formData.npwp}
-          onChangeText={(value) => onChange("npwp", value)}
-          inputStyle={inputStyle}
-          placeholderTextColor={placeholderTextColor}
-          disabled={false}
-        />
-        
-        <View style={styles.spacer} />
-        
-        <FloatingLabelInput
-          label="Lokasi"
-          value={formData.location}
-          onChangeText={(value) => onChange("location", value)}
-          inputStyle={inputStyle}
-          placeholderTextColor={placeholderTextColor}
-          disabled={false}
-        />
-        
-        <View style={styles.spacer} />
-        
-        <FloatingLabelInput
-          label="Ruangan"
-          value={formData.room}
-          onChangeText={(value) => onChange("room", value)}
-          inputStyle={inputStyle}
-          placeholderTextColor={placeholderTextColor}
-          disabled={false}
-        />
+        {/* Clinic Preceptor specific fields */}
+        {formData.role === "preseptor_klinik" && (
+          <>
+            <FloatingLabelInput
+              label="Lokasi"
+              value={formData.location}
+              onChangeText={(value) => onChange("location", value)}
+              inputStyle={inputStyle}
+              placeholderTextColor={placeholderTextColor}
+              disabled={false}
+            />
+            
+            <View style={styles.spacer} />
+            
+            <FloatingLabelInput
+              label="Ruangan"
+              value={formData.room}
+              onChangeText={(value) => onChange("room", value)}
+              inputStyle={inputStyle}
+              placeholderTextColor={placeholderTextColor}
+              disabled={false}
+            />
+          </>
+        )}
       </>
     );
   };
