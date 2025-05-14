@@ -14,8 +14,8 @@ export default function KunjunganScreen() {
   // Render content based on role
   const renderRoleContent = () => {
     switch (role) {
-      case 'mahasiswa':
-        return (
+      case 'student':
+        return (  
           <View style={styles.roleContent}>
             <Text style={[styles.subtitle, { color: theme.icon }]}>
               Mahasiswa dapat melihat jadwal kunjungan ke perusahaan/institusi

@@ -68,6 +68,15 @@ export interface AdvisorRegistrationData {
   password: string;
 }
 
+// File data structure
+export interface FileData {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  file: string;
+}
+
 // Error handling for fetch
 class ApiError extends Error {
   status: number;
@@ -285,5 +294,17 @@ export const api = {
     
     const options = createRequestOptions("POST", sanitizedData);
     return fetchWithTimeout<any>(url, options);
+  },
+
+  // Get all guide files
+  getFiles: async (token?: string): Promise<ApiResponse<FileData[]>> => {
+    const url = `${API_URL}/files`;
+    const options = createRequestOptions("POST", undefined, token);
+    return fetchWithTimeout<FileData[]>(url, options);
+  },
+
+  // Get file download URL
+  getFileDownloadUrl: (fileId: number): string => {
+    return `${API_URL}/files/downloads/${fileId}`;
   },
 };

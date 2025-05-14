@@ -14,7 +14,7 @@ export default function VerifikasiScreen() {
   // Render content based on role
   const renderRoleContent = () => {
     switch (role) {
-      case 'mahasiswa':
+      case 'student':
         return (
           <View style={styles.roleContent}>
             <Text style={[styles.subtitle, { color: theme.icon }]}>

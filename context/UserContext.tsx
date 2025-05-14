@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { api, LoginResponseData, UserSessionData } from '@/services/api';
 
 // Define user roles
-export type UserRole = 'mahasiswa' | 'dosen' | 'kaprodi';
+export type UserRole = 'student' | 'dosen' | 'kaprodi';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -29,7 +29,7 @@ type UserContextType = {
 
 // Create the context with a default value
 const UserContext = createContext<UserContextType>({
-  role: 'mahasiswa',
+  role: 'student',
   setRole: () => {},
   userInfo: null,
   setUserInfo: () => {},
@@ -44,7 +44,7 @@ const UserContext = createContext<UserContextType>({
 
 // Create provider component
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [role, setRole] = useState<UserRole>('mahasiswa');
+  const [role, setRole] = useState<UserRole>('student');
   const [userInfo, setUserInfo] = useState<UserSessionData | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [token, setToken] = useState<string | null>(null);
@@ -99,7 +99,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   // Function to clear session data
   const clearSession = async () => {
-    setRole('mahasiswa');
+    setRole('student');
     setUserInfo(null);
     setIsLoggedIn(false);
     setToken(null);
