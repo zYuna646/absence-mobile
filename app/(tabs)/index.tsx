@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useUser } from "@/context/UserContext";
 import { useThemeColor } from "@/constants/Colors";
+import { api } from "@/services/api";
 
 // Import reusable components
 import Card from "@/components/ui/Card";
@@ -16,28 +18,135 @@ import NotificationPanel, {
   Notification,
 } from "@/components/ui/NotificationPanel";
 import ActivityCalendar, { Activity } from "@/components/ui/ActivityCalendar";
+import { TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+// Define student statistics interface
+interface StudentStatistics {
+  student: {
+    id: number;
+    name: string;
+  };
+  range: {
+    start: string;
+    end: string;
+  };
+  logbooks: {
+    list: LogbookItem[];
+    statistics: {
+      total: number;
+      verified: number;
+      unverified: number;
+      incomplete: number;
+    };
+  };
+  calendar: {
+    [date: string]: {
+      logbook: {
+        [status: string]: {
+          count: number;
+          status: string;
+          type: string;
+        };
+      };
+    };
+  };
+}
+
+interface LogbookItem {
+  id: number;
+  date: string;
+  activity: {
+    id: number;
+    name: string;
+  };
+  type: string;
+  status: string;
+  location: string;
+  note: string;
+  check_in_time: string;
+  check_out_time: string;
+}
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const colors = useThemeColor();
-  const { role, userInfo } = useUser();
+  const { role, userInfo, token, logout } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>(
     getSampleNotifications()
   );
-  const [activities, setActivities] = useState<Activity[]>(
-    getSampleActivities()
-  );
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [statistics, setStatistics] = useState<StudentStatistics | null>(null);
+  const router = useRouter();
+
+  // Fetch student statistics when component mounts
+  useEffect(() => {
+    if (role === "student" && token) {
+      fetchStudentStatistics();
+    } else {
+      setLoading(false);
+    }
+  }, [role, token]);
+
+  // Fetch student statistics from API
+  const fetchStudentStatistics = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getStudentStatistics(token!);
+      
+      if (response.success && response.data) {
+        setStatistics(response.data);
+        
+        // Convert calendar data to activities
+        const calendarActivities = convertToActivities(response.data);
+        setActivities(calendarActivities);
+      } else {
+        console.error("Failed to fetch statistics:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Convert API data to activities format
+  const convertToActivities = (data: StudentStatistics): Activity[] => {
+    const activities: Activity[] = [];
+    
+    // Add logbook entries to activities
+    if (data.logbooks && data.logbooks.list) {
+      data.logbooks.list.forEach(logbook => {
+        // Format date to yyyy-mm-dd for calendar
+        const dateParts = logbook.date.split('-');
+        const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+        
+        activities.push({
+          id: logbook.id.toString(),
+          title: logbook.activity.name,
+          date: formattedDate,
+          type: "lainnya", // Use a valid ActivityType
+          location: logbook.location,
+          time: `${logbook.check_in_time.substring(0, 5)} - ${logbook.check_out_time.substring(0, 5)}`,
+          status: logbook.status === "verified" ? "completed" : 
+                 logbook.status === "unverified" ? "pending" : 
+                 "pending", // Map to valid status values
+        });
+      });
+    }
+    
+    return activities;
+  };
 
   // Get formatted role text
   const getRoleText = () => {
     switch (role) {
       case "student":
         return "Mahasiswa";
-      case "dosen":
-        return "Dosen";
-      case "kaprodi":
-        return "Kepala Program Studi";
+      case "advisor":
+        return "Pembimbing";
       default:
         return role;
     }
@@ -65,7 +174,12 @@ export default function DashboardScreen() {
 
   // Handle profile icon press
   const handleProfilePress = () => {
-    console.log("Profile icon pressed");
+    router.push("/profile");
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    await logout();
   };
 
   // Get unread notification count
@@ -75,28 +189,81 @@ export default function DashboardScreen() {
 
   // Handle activity selection
   const handleActivitySelect = (activity: Activity) => {
-    // Handle activity selection
-    console.log("Selected activity:", activity);
+    // Navigate to the activity detail page
+    if (activity.id) {
+      router.push({
+        pathname: "/laporan",
+        params: { 
+          activityId: activity.id,
+          activityName: activity.title
+        }
+      });
+    }
+  };
+
+  // Navigate to logbook entry screen
+  const navigateToLogbook = (logbookItem: LogbookItem) => {
+    router.push({
+      pathname: "/laporan",
+      params: { activityId: logbookItem.activity.id, activityName: logbookItem.activity.name }
+    });
   };
 
   // Render content based on role
   const renderRoleContent = () => {
     switch (role) {
       case "student":
+        if (loading) {
+          return (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.tint} />
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                Loading data...
+              </Text>
+            </View>
+          );
+        }
+        
+        if (!statistics) {
+          return (
+            <Card title="Ringkasan Aktivitas">
+              <Text style={[styles.emptyText, { color: colors.text }]}>
+                Data tidak tersedia
+              </Text>
+            </Card>
+          );
+        }
+        
         return (
           <View style={styles.roleContent}>
             <Card title="Ringkasan Aktivitas">
               <StatisticRow
                 items={[
-                  { value: 2, label: "Kunjungan" },
-                  { value: 1, label: "Terverifikasi" },
-                  { value: 1, label: "Menunggu" },
+                  { value: statistics.logbooks.statistics.total, label: "Total" },
+                  { value: statistics.logbooks.statistics.verified, label: "Terverifikasi" },
+                  { value: statistics.logbooks.statistics.unverified, label: "Menunggu" },
                 ]}
               />
             </Card>
+            
+            {statistics.logbooks.list.length > 0 && (
+              <Card title="Kegiatan Terbaru">
+                {statistics.logbooks.list.slice(0, 3).map((logbook, index) => (
+                  <ActivityItem
+                    key={logbook.id}
+                    title={logbook.activity.name}
+                    subtitle={logbook.location}
+                    timestamp={logbook.date}
+                    showDivider={index < statistics.logbooks.list.length - 1}
+                    status={logbook.status}
+                    onPress={() => navigateToLogbook(logbook)}
+                  />
+                ))}
+              </Card>
+            )}
           </View>
         );
-      case "dosen":
+      case "advisor":
         return (
           <View style={styles.roleContent}>
             <Card title="Ringkasan Aktivitas">
@@ -124,42 +291,6 @@ export default function DashboardScreen() {
             </Card>
           </View>
         );
-      case "kaprodi":
-        return (
-          <View style={styles.roleContent}>
-            <Card title="Statistik Program Studi">
-              <StatisticRow
-                items={[
-                  { value: 120, label: "Mahasiswa" },
-                  { value: 15, label: "Dosen" },
-                  { value: 42, label: "Kunjungan" },
-                ]}
-              />
-            </Card>
-
-            <Card title="Aktivitas Terbaru">
-              <ActivityItem
-                title={
-                  <Text style={{ color: colors.text }}>
-                    <Text style={{ fontWeight: "bold" }}>Dr. Ahmad Surya</Text>{" "}
-                    memverifikasi kunjungan mahasiswa
-                  </Text>
-                }
-                timestamp="1 jam yang lalu"
-                showDivider={true}
-              />
-              <ActivityItem
-                title={
-                  <Text style={{ color: colors.text }}>
-                    <Text style={{ fontWeight: "bold" }}>3 mahasiswa</Text>{" "}
-                    menambahkan kunjungan baru
-                  </Text>
-                }
-                timestamp="3 jam yang lalu"
-              />
-            </Card>
-          </View>
-        );
       default:
         return null;
     }
@@ -171,13 +302,22 @@ export default function DashboardScreen() {
     >
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <ProfileHeader
-        name={userInfo?.name || "Rangga Saputra"}
+        name={userInfo?.name || "User"}
         role={getRoleText()}
         onNotificationPress={handleNotificationIconPress}
         onProfilePress={handleProfilePress}
         notificationCount={getUnreadCount()}
       />
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      
+      <TouchableOpacity 
+        style={[styles.logoutButton, { backgroundColor: colors.tint }]} 
+        onPress={handleLogout}
+      >
+        <Ionicons name="log-out-outline" size={20} color="white" />
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+      
+      <ScrollView contentContainerStyle={styles.scrollContent}>
 
         {showNotifications && (
           <NotificationPanel
@@ -188,10 +328,19 @@ export default function DashboardScreen() {
         )}
 
         <Card title="Kalender Aktivitas">
-          <ActivityCalendar
-            activities={activities}
-            onSelectActivity={handleActivitySelect}
-          />
+          {loading ? (
+            <View style={styles.calendarLoading}>
+              <ActivityIndicator size="small" color={colors.tint} />
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                Loading calendar...
+              </Text>
+            </View>
+          ) : (
+            <ActivityCalendar
+              activities={activities}
+              onSelectActivity={handleActivitySelect}
+            />
+          )}
         </Card>
 
         {renderRoleContent()}
@@ -231,54 +380,11 @@ function getSampleNotifications(): Notification[] {
   ];
 }
 
-// Sample data for activities
-function getSampleActivities(): Activity[] {
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  return [
-    {
-      id: "1",
-      title: "PT. Teknologi Indonesia",
-      date: formatDate(today),
-      type: "kunjungan",
-      location: "Jl. Teknologi No. 123",
-      time: "09:00 - 12:00 WIB",
-      status: "completed",
-    },
-    {
-      id: "2",
-      title: "PT. Maju Bersama",
-      date: formatDate(tomorrow),
-      type: "kunjungan",
-      location: "Jl. Industri No. 45",
-      time: "10:00 - 13:00 WIB",
-      status: "pending",
-    },
-    {
-      id: "3",
-      title: "Verifikasi Laporan",
-      date: formatDate(today),
-      type: "verifikasi",
-      time: "15:00 WIB",
-      status: "pending",
-    },
-  ];
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContainer: {
+  scrollContent: {
     padding: 20,
     paddingTop: 0,
   },
@@ -293,5 +399,38 @@ const styles = StyleSheet.create({
   upcomingDetails: {
     fontSize: 12,
     marginBottom: 8,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  logoutText: {
+    color: 'white',
+    marginLeft: 8,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+  },
+  emptyText: {
+    textAlign: 'center',
+    padding: 15,
+    fontSize: 14,
+  },
+  calendarLoading: {
+    height: 250,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -1,6 +1,13 @@
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Platform, StyleSheet, ViewStyle, Text, View, TextStyle } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  ViewStyle,
+  Text,
+  View,
+  TextStyle,
+} from "react-native";
 import { router, usePathname } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
@@ -65,23 +72,19 @@ export default function TabLayout() {
     tabBarStyle.position = "absolute";
   }
 
-  // Check if exact string "student" (for debugging)
-  const isStudent = role === "student";
-  console.log(`Role: "${role}", isStudent: ${isStudent}`);
-
   // Common header style for tabs that display a header
   const commonHeaderOptions = {
-    headerTitleAlign: 'center' as 'center', // Center the header title
+    headerTitleAlign: "center" as "center", // Center the header title
     headerStyle: {
       backgroundColor: colors.tint,
     },
     headerTitleStyle: {
-      color: 'white',
-    }
+      color: "white",
+    },
   };
 
   // Conditionally render tabs based on role
-  if (isStudent) {
+  if (role === "student") {
     return (
       <Tabs
         screenOptions={{
@@ -160,13 +163,91 @@ export default function TabLayout() {
         />
       </Tabs>
     );
+  } else if (role === "advisor") {
+    // Tabs for advisor role
+    return (
+      <Tabs
+        screenOptions={{
+          headerShown: true, // Default to showing headers
+          tabBarButton: HapticTab,
+          tabBarStyle,
+          tabBarActiveTintColor: colors.tabIconSelected,
+          tabBarInactiveTintColor: colors.tabIconDefault,
+          tabBarActiveBackgroundColor: colors.tabsSelectedBackground,
+          tabBarInactiveBackgroundColor: colors.tabsBackground,
+          tabBarItemStyle: styles.tabBarItem,
+          tabBarLabelStyle: styles.tabBarLabel,
+          // Disable the floating appearance
+          tabBarHideOnKeyboard: true,
+          tabBarShowLabel: true,
+          tabBarAllowFontScaling: false,
+          // Header options
+          headerTitleAlign: commonHeaderOptions.headerTitleAlign,
+          headerStyle: commonHeaderOptions.headerStyle,
+          headerTitleStyle: commonHeaderOptions.headerTitleStyle,
+        }}
+      >
+        <Tabs.Screen
+          name="verifikasi"
+          options={{
+            title: "Verifikasi",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="checkmark-circle" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="kunjungan"
+          options={{
+            title: "Kunjungan",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="paper-plane" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Dashboard",
+            headerShown: false, // Hide header for dashboard
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="dashboard" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="kegiatan"
+          options={{
+            title: "Kegiatan",
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="file-document-edit-outline"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="panduan"
+          options={{
+            href: null,
+            title: "Panduan",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="document-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    );
   }
 
-  // Default tabs for other roles
+  // Default tabs for unknown roles as fallback
   return (
     <Tabs
       screenOptions={{
-        headerShown: true, // Default to showing headers
+        headerShown: true,
         tabBarButton: HapticTab,
         tabBarStyle,
         tabBarActiveTintColor: colors.tabIconSelected,
@@ -175,31 +256,19 @@ export default function TabLayout() {
         tabBarInactiveBackgroundColor: colors.tabsBackground,
         tabBarItemStyle: styles.tabBarItem,
         tabBarLabelStyle: styles.tabBarLabel,
-        // Disable the floating appearance
         tabBarHideOnKeyboard: true,
         tabBarShowLabel: true,
         tabBarAllowFontScaling: false,
-        // Header options
         headerTitleAlign: commonHeaderOptions.headerTitleAlign,
         headerStyle: commonHeaderOptions.headerStyle,
         headerTitleStyle: commonHeaderOptions.headerTitleStyle,
       }}
     >
       <Tabs.Screen
-        name="verifikasi"
-        options={{
-          title: "Verifikasi",
-          href: null,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkmark-circle" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="index"
         options={{
           title: "Dashboard",
-          headerShown: false, // Hide header for dashboard
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="dashboard" size={size} color={color} />
           ),

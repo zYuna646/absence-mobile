@@ -44,7 +44,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </TouchableOpacity>
         </View>
         
-        <View style={styles.profileContainer}>
+        <TouchableOpacity 
+          style={styles.profileContainer}
+          onPress={onProfilePress}
+          activeOpacity={0.8}
+        >
           <View style={styles.avatarContainer}>
             <Ionicons name="person-circle" size={50} color="white" />
           </View>
@@ -58,7 +62,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </Text>
             )}
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
     </View>
   );

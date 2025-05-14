@@ -77,6 +77,57 @@ export interface FileData {
   file: string;
 }
 
+// Activity data structure
+export interface ActivityData {
+  id: number;
+  name: string;
+  indicators: string;
+  clinic_advisor_id?: number;
+  advisor_clinic_name?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Clinic Advisor data structure
+export interface ClinicAdvisorData {
+  id: number;
+  name: string;
+  location?: string;
+  room?: string;
+  advisor_id?: number; // Added for API response structure
+  // Add other relevant fields if needed
+}
+
+// Student profile update data structure
+export interface StudentProfileUpdateData {
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  birthday: string;
+  gender: string;
+  student_id: string;
+}
+
+// Advisor profile update data structure
+export interface AdvisorProfileUpdateData {
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  birthday: string;
+  gender: string;
+  stase_id: number;
+  type: string; // "academic" or "clinic"
+  // Fields for academic preceptor
+  npwp?: string;
+  nip?: string;
+  // Fields for clinic preceptor
+  location?: string;
+  room?: string;
+  password?: string; // Optional for updates
+}
+
 // Error handling for fetch
 class ApiError extends Error {
   status: number;
@@ -225,6 +276,171 @@ export const api = {
     return fetchWithTimeout<null>(url, options);
   },
 
+  // Logbook check-in
+  checkInLogbook: async (
+    token: string,
+    formData: FormData
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/logbooks/check-in`;
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      const responseText = await response.text();
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : { success: false, message: "Empty response" };
+      } catch (jsonError) {
+        console.error("JSON parsing error:", jsonError);
+        return {
+          success: false,
+          message: `Invalid response format: ${responseText.substring(0, 100)}...`,
+        };
+      }
+      
+      if (!response.ok) {
+        throw new ApiError(
+          data.message || "An error occurred during the logbook check-in",
+          response.status
+        );
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("API error:", error);
+      
+      if (error instanceof ApiError) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      }
+      
+      if (error instanceof Error && error.name === "AbortError") {
+        return {
+          success: false,
+          message: "Request timeout",
+        };
+      }
+      
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Get student logbooks
+  getStudentLogbooks: async (
+    token: string
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/students/my-logbooks`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
+  // Get logbook details
+  getLogbookDetails: async (
+    token: string,
+    checkInId: number
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/logbooks/${checkInId}`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
+  // Get student dashboard statistics
+  getStudentStatistics: async (
+    token: string
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/students/statistics`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
+  // Logbook check-out
+  checkOutLogbook: async (
+    token: string,
+    checkInId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/logbooks/${checkInId}/check-out`;
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      const responseText = await response.text();
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : { success: false, message: "Empty response" };
+      } catch (jsonError) {
+        console.error("JSON parsing error:", jsonError);
+        return {
+          success: false,
+          message: `Invalid response format: ${responseText.substring(0, 100)}...`,
+        };
+      }
+      
+      if (!response.ok) {
+        throw new ApiError(
+          data.message || "An error occurred during the logbook check-out",
+          response.status
+        );
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("API error:", error);
+      
+      if (error instanceof ApiError) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      }
+      
+      if (error instanceof Error && error.name === "AbortError") {
+        return {
+          success: false,
+          message: "Request timeout",
+        };
+      }
+      
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
   // Get all stases
   getStases: async (token?: string): Promise<ApiResponse<StaseData[]>> => {
     const url = `${API_URL}${ENDPOINTS.STASES}`;
@@ -306,5 +522,53 @@ export const api = {
   // Get file download URL
   getFileDownloadUrl: (fileId: number): string => {
     return `${API_URL}/files/downloads/${fileId}`;
+  },
+
+  // Get all activities
+  getActivities: async (token: string): Promise<ApiResponse<ActivityData[]>> => {
+    const url = `${API_URL}${ENDPOINTS.ACTIVITIES}`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<ActivityData[]>(url, options);
+  },
+
+  // Create a new activity
+  createActivity: async (
+    token: string,
+    data: {
+      name: string;
+      indicators: string;
+      clinic_advisor_id: number;
+    }
+  ): Promise<ApiResponse<ActivityData>> => {
+    const url = `${API_URL}${ENDPOINTS.ACTIVITIES}`;
+    const options = createRequestOptions("POST", data, token);
+    return fetchWithTimeout<ActivityData>(url, options);
+  },
+
+  // Get all clinic advisors
+  getClinicAdvisors: async (token: string): Promise<ApiResponse<ClinicAdvisorData[]>> => {
+    const url = `${API_URL}${ENDPOINTS.ADVISORS_CLINICS}`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<ClinicAdvisorData[]>(url, options);
+  },
+
+  // Update student profile
+  updateStudentProfile: async (
+    token: string,
+    data: StudentProfileUpdateData
+  ): Promise<ApiResponse<UserSessionData>> => {
+    const url = `${API_URL}${ENDPOINTS.UPDATE_STUDENT_PROFILE}`;
+    const options = createRequestOptions("PUT", data, token);
+    return fetchWithTimeout<UserSessionData>(url, options);
+  },
+
+  // Update advisor profile
+  updateAdvisorProfile: async (
+    token: string,
+    data: AdvisorProfileUpdateData
+  ): Promise<ApiResponse<UserSessionData>> => {
+    const url = `${API_URL}${ENDPOINTS.UPDATE_ADVISOR_PROFILE}`;
+    const options = createRequestOptions("PUT", data, token);
+    return fetchWithTimeout<UserSessionData>(url, options);
   },
 };

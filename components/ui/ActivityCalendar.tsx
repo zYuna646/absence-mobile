@@ -4,7 +4,7 @@ import { Calendar } from 'react-native-calendars';
 import { useThemeColor } from '@/constants/Colors';
 
 // Define types for activities
-export type ActivityType = 'kunjungan' | 'verifikasi' | 'lainnya';
+export type ActivityType = 'kunjungan' | 'verifikasi' | 'lainnya' | 'logbook';
 
 export type Activity = {
   id: string;

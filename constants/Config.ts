@@ -23,6 +23,10 @@ export const ENDPOINTS = {
   REGISTER: "/auth/register",
   STUDENTS_REGISTER: "/students/register",
   ADVISORS_REGISTER: "/advisors/register",
+  ACTIVITIES: "/activities",
+  ADVISORS_CLINICS: "/advisors/clinics",
+  UPDATE_STUDENT_PROFILE: "/students/profile",
+  UPDATE_ADVISOR_PROFILE: "/advisors/profile",
 };
 
 // Timeouts

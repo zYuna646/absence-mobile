@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { api, LoginResponseData, UserSessionData } from '@/services/api';
 
 // Define user roles
-export type UserRole = 'student' | 'dosen' | 'kaprodi';
+export type UserRole = 'student' | 'advisor';
 
 // Storage keys
 const STORAGE_KEYS = {
