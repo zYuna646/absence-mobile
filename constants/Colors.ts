@@ -23,6 +23,7 @@ export const Colors = {
     error: '#e11d48',
     success: '#10b981',
     warning: '#f59e0b',
+    disabled: '#cccccc',
   },
   dark: {
     text: '#ECEDEE',
@@ -39,6 +40,7 @@ export const Colors = {
     error: '#f43f5e',
     success: '#34d399',
     warning: '#fbbf24',
+    disabled: '#666666',
   },
 };
 

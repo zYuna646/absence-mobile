@@ -23,7 +23,7 @@ import { useThemeColor } from "@/constants/Colors";
  */
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { verifySession, isLoggedIn, isLoading, role } = useUser();
+  const { verifySession, isLoggedIn, isLoading, role, userInfo } = useUser();
   const pathname = usePathname();
   const colors = useThemeColor();
   const [currentRole, setCurrentRole] = useState<string | null>(null);
@@ -83,30 +83,29 @@ export default function TabLayout() {
     },
   };
 
-  // Conditionally render tabs based on role
+  // Common tab screen options
+  const commonTabScreenOptions = {
+    headerShown: true,
+    tabBarButton: HapticTab,
+    tabBarStyle,
+    tabBarActiveTintColor: colors.tabIconSelected,
+    tabBarInactiveTintColor: colors.tabIconDefault,
+    tabBarActiveBackgroundColor: colors.tabsSelectedBackground,
+    tabBarInactiveBackgroundColor: colors.tabsBackground,
+    tabBarItemStyle: styles.tabBarItem,
+    tabBarLabelStyle: styles.tabBarLabel,
+    tabBarHideOnKeyboard: true,
+    tabBarShowLabel: true,
+    tabBarAllowFontScaling: false,
+    headerTitleAlign: commonHeaderOptions.headerTitleAlign,
+    headerStyle: commonHeaderOptions.headerStyle,
+    headerTitleStyle: commonHeaderOptions.headerTitleStyle,
+  };
+
+  // Render student tabs
   if (role === "student") {
     return (
-      <Tabs
-        screenOptions={{
-          headerShown: true, // Default to showing headers
-          tabBarButton: HapticTab,
-          tabBarStyle,
-          tabBarActiveTintColor: colors.tabIconSelected,
-          tabBarInactiveTintColor: colors.tabIconDefault,
-          tabBarActiveBackgroundColor: colors.tabsSelectedBackground,
-          tabBarInactiveBackgroundColor: colors.tabsBackground,
-          tabBarItemStyle: styles.tabBarItem,
-          tabBarLabelStyle: styles.tabBarLabel,
-          // Disable the floating appearance
-          tabBarHideOnKeyboard: true,
-          tabBarShowLabel: true,
-          tabBarAllowFontScaling: false,
-          // Header options
-          headerTitleAlign: commonHeaderOptions.headerTitleAlign,
-          headerStyle: commonHeaderOptions.headerStyle,
-          headerTitleStyle: commonHeaderOptions.headerTitleStyle,
-        }}
-      >
+      <Tabs screenOptions={commonTabScreenOptions}>
         <Tabs.Screen
           name="kunjungan"
           options={{
@@ -164,29 +163,86 @@ export default function TabLayout() {
       </Tabs>
     );
   } else if (role === "advisor") {
-    // Tabs for advisor role
+    // Check if advisor is clinic type
+    const isClinicAdvisor = userInfo?.type === "clinic";
+
+    if (isClinicAdvisor) {
+      // Render clinic advisor tabs
+      return (
+        <Tabs screenOptions={commonTabScreenOptions}>
+        <Tabs.Screen
+          name="verifikasi"
+          options={{
+            title: "Verifikasi",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="checkmark-circle" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="kunjungan"
+          options={{
+            title: "Kunjungan",
+            href: null,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="paper-plane" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Dashboard",
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="dashboard" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="kegiatan"
+          options={{
+            title: "Kegiatan",
+            href: null,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="file-document-edit-outline"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="panduan"
+          options={{
+            href: null,
+            title: "Panduan",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="document-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+            name="absensi"
+            options={{
+              title: "Absensi",
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons
+                  name="calendar-clock"
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
+      </Tabs>
+      );
+    }
+
+    // Render regular advisor tabs
     return (
-      <Tabs
-        screenOptions={{
-          headerShown: true, // Default to showing headers
-          tabBarButton: HapticTab,
-          tabBarStyle,
-          tabBarActiveTintColor: colors.tabIconSelected,
-          tabBarInactiveTintColor: colors.tabIconDefault,
-          tabBarActiveBackgroundColor: colors.tabsSelectedBackground,
-          tabBarInactiveBackgroundColor: colors.tabsBackground,
-          tabBarItemStyle: styles.tabBarItem,
-          tabBarLabelStyle: styles.tabBarLabel,
-          // Disable the floating appearance
-          tabBarHideOnKeyboard: true,
-          tabBarShowLabel: true,
-          tabBarAllowFontScaling: false,
-          // Header options
-          headerTitleAlign: commonHeaderOptions.headerTitleAlign,
-          headerStyle: commonHeaderOptions.headerStyle,
-          headerTitleStyle: commonHeaderOptions.headerTitleStyle,
-        }}
-      >
+      <Tabs screenOptions={commonTabScreenOptions}>
         <Tabs.Screen
           name="verifikasi"
           options={{
@@ -209,7 +265,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: "Dashboard",
-            headerShown: false, // Hide header for dashboard
+            headerShown: false,
             tabBarIcon: ({ color, size }) => (
               <MaterialIcons name="dashboard" size={size} color={color} />
             ),
@@ -228,7 +284,6 @@ export default function TabLayout() {
             ),
           }}
         />
-
         <Tabs.Screen
           name="panduan"
           options={{
@@ -239,31 +294,27 @@ export default function TabLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+            name="absensi"
+            options={{
+              title: "Absensi",
+              href: null,
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons
+                  name="calendar-clock"
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
       </Tabs>
     );
   }
 
-  // Default tabs for unknown roles as fallback
+  // Default tabs for unknown roles
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: true,
-        tabBarButton: HapticTab,
-        tabBarStyle,
-        tabBarActiveTintColor: colors.tabIconSelected,
-        tabBarInactiveTintColor: colors.tabIconDefault,
-        tabBarActiveBackgroundColor: colors.tabsSelectedBackground,
-        tabBarInactiveBackgroundColor: colors.tabsBackground,
-        tabBarItemStyle: styles.tabBarItem,
-        tabBarLabelStyle: styles.tabBarLabel,
-        tabBarHideOnKeyboard: true,
-        tabBarShowLabel: true,
-        tabBarAllowFontScaling: false,
-        headerTitleAlign: commonHeaderOptions.headerTitleAlign,
-        headerStyle: commonHeaderOptions.headerStyle,
-        headerTitleStyle: commonHeaderOptions.headerTitleStyle,
-      }}
-    >
+    <Tabs screenOptions={commonTabScreenOptions}>
       <Tabs.Screen
         name="index"
         options={{

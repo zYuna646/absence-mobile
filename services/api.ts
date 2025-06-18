@@ -27,6 +27,7 @@ export interface UserSessionData {
   username: string;
   email: string;
   role: UserRole;
+  type?: string;
   [key: string]: any; // Allow additional properties
 }
 
@@ -144,6 +145,58 @@ export interface VisitData {
   description?: string;
   photo?: string;
   score?: number;
+}
+
+// Attendance data structure
+export interface AttendanceData {
+  advisor: {
+    id: string;
+    name: string;
+  };
+  activity: {
+    id: string;
+    name: string;
+  };
+  check_in: {
+    id: string;
+    address: string;
+    latitude: string;
+    longitude: string;
+    photo: string;
+    check_time: string;
+    date: string;
+  };
+  check_out: string | null;
+}
+
+interface AttendanceListItem {
+  check_in_id: number;
+  check_in_date: string;
+  check_in_time: string;
+  check_out_date: string | null;
+  check_out_time: string | null;
+  status: 'complete' | 'incomplete';
+}
+
+interface AttendanceDetail {
+  advisor: {
+    id: number;
+    name: string;
+  };
+  activity: {
+    id: number;
+    name: string;
+  };
+  check_in: {
+    id: number;
+    address: string;
+    latitude: string;
+    longitude: string;
+    photo: string;
+    check_time: string;
+    date: string;
+  };
+  check_out: string | null;
 }
 
 // Error handling for fetch
@@ -779,6 +832,128 @@ export const api = {
       return fetchWithTimeout<VisitData>(url, options);
     } catch (error) {
       console.error("Error in getVisitDetails:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Get logbook data for a student
+  async getLogbook(
+    token: string,
+    studentId: number
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.LOGBOOKS}/${studentId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in getLogbook:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Verify a logbook entry
+  async verifyLogbook(
+    token: string,
+    checkOutId: number,
+    data: { status: string; notes?: string }
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.LOGBOOKS}/${checkOutId}/verify`;
+      const options = createRequestOptions("POST", data, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in verifyLogbook:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getAttendances(token: string): Promise<ApiResponse<AttendanceListItem[]>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.ATTENDANCES}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<AttendanceListItem[]>(url, options);
+    } catch (error) {
+      console.error("Error in getAttendances:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getAttendanceDetail(token: string, checkInId: number): Promise<ApiResponse<AttendanceDetail>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.ATTENDANCES}/${checkInId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<AttendanceDetail>(url, options);
+    } catch (error) {
+      console.error("Error in getAttendanceDetail:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async checkInAttendance(
+    token: string,
+    activityId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.ATTENDANCES}/${activityId}/check-in`;
+      const options = {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      };
+      const response = await fetch(url, options);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error in checkInAttendance:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async checkOutAttendance(
+    token: string,
+    checkInId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> {
+    try {
+      console.log(checkInId);
+      console.log(formData);
+      const url = `${API_URL}${ENDPOINTS.ATTENDANCES}/${checkInId}/check-out`;
+      const options = {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      };
+
+      const response = await fetch(url, options);
+      console.log(response);
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error("Error in checkOutAttendance:", error);
       return {
         success: false,
         message: error instanceof Error ? error.message : "Unknown error",

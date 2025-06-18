@@ -81,7 +81,7 @@ interface AdvisorStatistics {
       incomplete: number;
     };
   };
-  advisor_visits: {
+  advisor_visits?: {
     list: any[];
     statistics: {
       total_visits: number;
@@ -89,6 +89,16 @@ interface AdvisorStatistics {
       in_progress_visits: number;
       unique_students_visited: number;
       unique_activities_visited: number;
+    };
+  };
+  advisor_attendances?: {
+    list: any[];
+    statistics: {
+      total_days: number;
+      present_days: number;
+      absent_days: number;
+      complete_attendances: number;
+      incomplete_attendances: number;
     };
   };
   calendar: {
@@ -311,6 +321,8 @@ export default function DashboardScreen() {
           return "Pembimbing Akademik";
         } else if (userInfo?.advisor_type === "industry") {
           return "Pembimbing Industri";
+        } else if (userInfo?.advisor_type === "clinic") {
+          return "Pembimbing Klinik";
         }
         return "Pembimbing";
       default:
@@ -501,8 +513,8 @@ export default function DashboardScreen() {
                     label: "Terverifikasi",
                   },
                   {
-                    value: advisorStatistics.logbooks.statistics.unverified,
-                    label: "Menunggu",
+                    value: advisorStatistics.logbooks.statistics.incomplete,
+                    label: "Belum Lengkap",
                   },
                 ]}
               />
@@ -511,7 +523,7 @@ export default function DashboardScreen() {
             {advisorStatistics.logbooks.list.length > 0 && (
               <Card title="Verifikasi Tertunda">
                 {advisorStatistics.logbooks.list
-                  .filter(logbook => logbook.status === "unverified")
+                  .filter(logbook => logbook.status === "unverified" || logbook.status === "incomplete")
                   .slice(0, 3)
                   .map((logbook, index, filteredArray) => (
                     <ActivityItem
@@ -524,7 +536,9 @@ export default function DashboardScreen() {
                       onPress={() => navigateToVerification(logbook)}
                     />
                   ))}
-                {!advisorStatistics.logbooks.list.some(logbook => logbook.status === "unverified") && (
+                {!advisorStatistics.logbooks.list.some(logbook => 
+                  logbook.status === "unverified" || logbook.status === "incomplete"
+                ) && (
                   <Text style={[styles.emptyText, { color: colors.text }]}>
                     Tidak ada verifikasi tertunda
                   </Text>
@@ -532,24 +546,46 @@ export default function DashboardScreen() {
               </Card>
             )}
             
-            <Card title="Statistik Kunjungan">
-              <StatisticRow
-                items={[
-                  {
-                    value: advisorStatistics.advisor_visits.statistics.total_visits,
-                    label: "Total",
-                  },
-                  {
-                    value: advisorStatistics.advisor_visits.statistics.completed_visits,
-                    label: "Selesai",
-                  },
-                  {
-                    value: advisorStatistics.advisor_visits.statistics.in_progress_visits,
-                    label: "Proses",
-                  },
-                ]}
-              />
-            </Card>
+            {/* Show different statistics based on advisor type */}
+            {advisorStatistics.advisor.type !== "clinic" && advisorStatistics.advisor_visits ? (
+              <Card title="Statistik Kunjungan">
+                <StatisticRow
+                  items={[
+                    {
+                      value: advisorStatistics.advisor_visits.statistics.total_visits,
+                      label: "Total",
+                    },
+                    {
+                      value: advisorStatistics.advisor_visits.statistics.completed_visits,
+                      label: "Selesai",
+                    },
+                    {
+                      value: advisorStatistics.advisor_visits.statistics.in_progress_visits,
+                      label: "Proses",
+                    },
+                  ]}
+                />
+              </Card>
+            ) : advisorStatistics.advisor_attendances ? (
+              <Card title="Statistik Kehadiran">
+                <StatisticRow
+                  items={[
+                    {
+                      value: advisorStatistics.advisor_attendances.statistics.total_days,
+                      label: "Total Hari",
+                    },
+                    {
+                      value: advisorStatistics.advisor_attendances.statistics.present_days,
+                      label: "Hadir",
+                    },
+                    {
+                      value: advisorStatistics.advisor_attendances.statistics.absent_days,
+                      label: "Tidak Hadir",
+                    },
+                  ]}
+                />
+              </Card>
+            ) : null}
           </View>
         );
       default:

@@ -28,6 +28,8 @@ export const ENDPOINTS = {
   UPDATE_STUDENT_PROFILE: "/students/profile",
   UPDATE_ADVISOR_PROFILE: "/advisors/profile",
   VISITS: "/visits",
+  LOGBOOKS: "/logbooks",
+  ATTENDANCES: "/attendances",
 };
 
 // Timeouts
