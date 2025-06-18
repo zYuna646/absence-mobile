@@ -61,6 +61,51 @@ interface StudentStatistics {
   };
 }
 
+// Define advisor statistics interface
+interface AdvisorStatistics {
+  advisor: {
+    id: number;
+    name: string;
+    type: string;
+  };
+  range: {
+    start: string;
+    end: string;
+  };
+  logbooks: {
+    list: AdvisorLogbookItem[];
+    statistics: {
+      total: number;
+      verified: number;
+      unverified: number;
+      incomplete: number;
+    };
+  };
+  advisor_visits: {
+    list: any[];
+    statistics: {
+      total_visits: number;
+      completed_visits: number;
+      in_progress_visits: number;
+      unique_students_visited: number;
+      unique_activities_visited: number;
+    };
+  };
+  calendar: {
+    [date: string]: {
+      logbook: {
+        [status: string]: {
+          count: number;
+          status: string;
+          type: string;
+          color: string;
+          students: string[];
+        };
+      };
+    };
+  };
+}
+
 interface LogbookItem {
   id: number;
   date: string;
@@ -76,6 +121,25 @@ interface LogbookItem {
   check_out_time: string;
 }
 
+interface AdvisorLogbookItem {
+  id: number;
+  date: string;
+  student: {
+    id: number;
+    name: string;
+  };
+  activity: {
+    id: number;
+    name: string;
+  };
+  type: string;
+  status: string;
+  location: string;
+  note: string | null;
+  check_in_time: string;
+  check_out_time: string | null;
+}
+
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const colors = useThemeColor();
@@ -88,12 +152,15 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [statistics, setStatistics] = useState<StudentStatistics | null>(null);
+  const [advisorStatistics, setAdvisorStatistics] = useState<AdvisorStatistics | null>(null);
   const router = useRouter();
 
-  // Fetch student statistics when component mounts
+  // Fetch statistics when component mounts
   useEffect(() => {
     if (role === "student" && token) {
       fetchStudentStatistics();
+    } else if (role === "advisor" && token) {
+      fetchAdvisorStatistics();
     } else {
       setLoading(false);
     }
@@ -122,7 +189,51 @@ export default function DashboardScreen() {
     }
   };
 
-  // Convert API data to activities format
+  // Fetch advisor statistics from API
+  const fetchAdvisorStatistics = async () => {
+    try {
+      setLoading(true);
+      
+      // Get current date for default range
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      // Format dates as DD-MM-YYYY
+      const formatDate = (date: Date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+      };
+      
+      const startDate = formatDate(firstDay);
+      const endDate = formatDate(lastDay);
+      
+      // Call API with date range
+      const response = await api.getAdvisorStatistics(token!, {
+        start_date: startDate,
+        end_date: endDate
+      });
+
+      if (response.success && response.data) {
+        setAdvisorStatistics(response.data);
+
+        // Convert calendar data to activities
+        const calendarActivities = convertToAdvisorActivities(response.data);
+        setActivities(calendarActivities);
+      } else {
+        console.error("Failed to fetch advisor statistics:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching advisor statistics:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Convert API data to activities format for student
   const convertToActivities = (data: StudentStatistics): Activity[] => {
     const activities: Activity[] = [];
 
@@ -142,7 +253,7 @@ export default function DashboardScreen() {
           time: `${logbook.check_in_time.substring(
             0,
             5
-          )} - ${logbook.check_out_time.substring(0, 5)}`,
+          )} - ${logbook.check_out_time ? logbook.check_out_time.substring(0, 5) : "--:--"}`,
           status:
             logbook.status === "verified"
               ? "completed"
@@ -156,12 +267,51 @@ export default function DashboardScreen() {
     return activities;
   };
 
+  // Convert API data to activities format for advisor
+  const convertToAdvisorActivities = (data: AdvisorStatistics): Activity[] => {
+    const activities: Activity[] = [];
+
+    // Add logbook entries to activities
+    if (data.logbooks && data.logbooks.list) {
+      data.logbooks.list.forEach((logbook) => {
+        // Format date to yyyy-mm-dd for calendar
+        const dateParts = logbook.date.split("-");
+        const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+
+        activities.push({
+          id: logbook.id.toString(),
+          title: `${logbook.student.name} - ${logbook.activity.name}`,
+          date: formattedDate,
+          type: "lainnya", // Use a valid ActivityType
+          location: logbook.location,
+          time: `${logbook.check_in_time.substring(
+            0,
+            5
+          )} - ${logbook.check_out_time ? logbook.check_out_time.substring(0, 5) : "--:--"}`,
+          status:
+            logbook.status === "verified"
+              ? "completed"
+              : logbook.status === "unverified"
+              ? "pending"
+              : "cancelled", // Map to valid status values
+        });
+      });
+    }
+
+    return activities;
+  };
+
   // Get formatted role text
   const getRoleText = () => {
     switch (role) {
       case "student":
         return "Mahasiswa";
       case "advisor":
+        if (userInfo?.advisor_type === "academic") {
+          return "Pembimbing Akademik";
+        } else if (userInfo?.advisor_type === "industry") {
+          return "Pembimbing Industri";
+        }
         return "Pembimbing";
       default:
         return role;
@@ -206,15 +356,13 @@ export default function DashboardScreen() {
   // Handle activity selection
   const handleActivitySelect = (activity: Activity) => {
     // Navigate to the activity detail page
-    console.log("selected activity", activity);
-
     // if (activity.id) {
     //   router.push({
     //     pathname: "/laporan",
-    //     params: {
+    //     params: { 
     //       activityId: activity.id,
-    //       activityName: activity.title,
-    //     },
+    //       activityName: activity.title
+    //     }
     //   });
     // }
   };
@@ -230,11 +378,25 @@ export default function DashboardScreen() {
     });
   };
 
+  // Navigate to advisor logbook verification screen
+  const navigateToVerification = (logbookItem: AdvisorLogbookItem) => {
+    router.push({
+      pathname: "/verifikasi",
+      params: {
+        logbookId: logbookItem.id,
+        studentName: logbookItem.student.name,
+        activityName: logbookItem.activity.name,
+      },
+    });
+  };
+
   // Handle refresh
   const onRefresh = () => {
     setRefreshing(true);
     if (role === "student" && token) {
       fetchStudentStatistics();
+    } else if (role === "advisor" && token) {
+      fetchAdvisorStatistics();
     } else {
       setRefreshing(false);
     }
@@ -304,29 +466,88 @@ export default function DashboardScreen() {
           </View>
         );
       case "advisor":
+        if (loading) {
+          return (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.tint} />
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                Loading data...
+              </Text>
+            </View>
+          );
+        }
+
+        if (!advisorStatistics) {
+          return (
+            <Card title="Ringkasan Aktivitas">
+              <Text style={[styles.emptyText, { color: colors.text }]}>
+                Data tidak tersedia
+              </Text>
+            </Card>
+          );
+        }
+
         return (
           <View style={styles.roleContent}>
             <Card title="Ringkasan Aktivitas">
               <StatisticRow
                 items={[
-                  { value: 12, label: "Mahasiswa" },
-                  { value: 25, label: "Kunjungan" },
-                  { value: 5, label: "Menunggu" },
+                  {
+                    value: advisorStatistics.logbooks.statistics.total,
+                    label: "Total",
+                  },
+                  {
+                    value: advisorStatistics.logbooks.statistics.verified,
+                    label: "Terverifikasi",
+                  },
+                  {
+                    value: advisorStatistics.logbooks.statistics.unverified,
+                    label: "Menunggu",
+                  },
                 ]}
               />
             </Card>
 
-            <Card title="Verifikasi Tertunda">
-              <ActivityItem
-                title="Ahmad Rizki - 190511001"
-                subtitle="PT. Teknologi Indonesia"
-                timestamp="20 Juli 2023"
-                showDivider={true}
-              />
-              <ActivityItem
-                title="Budi Santoso - 190511002"
-                subtitle="PT. Maju Bersama"
-                timestamp="22 Juli 2023"
+            {advisorStatistics.logbooks.list.length > 0 && (
+              <Card title="Verifikasi Tertunda">
+                {advisorStatistics.logbooks.list
+                  .filter(logbook => logbook.status === "unverified")
+                  .slice(0, 3)
+                  .map((logbook, index, filteredArray) => (
+                    <ActivityItem
+                      key={logbook.id}
+                      title={`${logbook.student.name} - ${logbook.activity.name}`}
+                      subtitle={logbook.location}
+                      timestamp={logbook.date}
+                      showDivider={index < filteredArray.length - 1}
+                      status={logbook.status}
+                      onPress={() => navigateToVerification(logbook)}
+                    />
+                  ))}
+                {!advisorStatistics.logbooks.list.some(logbook => logbook.status === "unverified") && (
+                  <Text style={[styles.emptyText, { color: colors.text }]}>
+                    Tidak ada verifikasi tertunda
+                  </Text>
+                )}
+              </Card>
+            )}
+            
+            <Card title="Statistik Kunjungan">
+              <StatisticRow
+                items={[
+                  {
+                    value: advisorStatistics.advisor_visits.statistics.total_visits,
+                    label: "Total",
+                  },
+                  {
+                    value: advisorStatistics.advisor_visits.statistics.completed_visits,
+                    label: "Selesai",
+                  },
+                  {
+                    value: advisorStatistics.advisor_visits.statistics.in_progress_visits,
+                    label: "Proses",
+                  },
+                ]}
               />
             </Card>
           </View>

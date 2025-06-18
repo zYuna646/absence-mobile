@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Calendar } from 'react-native-calendars';
-import { useThemeColor } from '@/constants/Colors';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { Calendar } from "react-native-calendars";
+import { useThemeColor } from "@/constants/Colors";
 
 // Define types for activities
-export type ActivityType = 'kunjungan' | 'verifikasi' | 'lainnya' | 'logbook';
+export type ActivityType = "kunjungan" | "verifikasi" | "lainnya" | "logbook";
 
 export type Activity = {
   id: string;
@@ -13,7 +19,7 @@ export type Activity = {
   type: ActivityType;
   location?: string;
   time?: string;
-  status?: 'pending' | 'completed' | 'cancelled';
+  status?: "pending" | "completed" | "cancelled" | "incomplete";
 };
 
 type ActivityCalendarProps = {
@@ -28,20 +34,21 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({
   onSelectActivity,
 }) => {
   const colors = useThemeColor();
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  
+  const [selectedDate, setSelectedDate] = useState<string>("");
+
   // Create marked dates object for calendar
   const getMarkedDates = () => {
     const markedDates: any = {};
-    
-    activities.forEach(activity => {
+
+    activities.forEach((activity) => {
       // Define dot color based on activity type
-      const dotColor = activity.type === 'kunjungan' 
-        ? colors.tint 
-        : activity.type === 'verifikasi'
-        ? colors.success
-        : colors.warning;
-      
+      const dotColor =
+        activity.type === "kunjungan"
+          ? colors.tint
+          : activity.type === "verifikasi"
+          ? colors.success
+          : colors.warning;
+
       if (markedDates[activity.date]) {
         // Add another dot if date already exists
         markedDates[activity.date].dots.push({
@@ -51,31 +58,33 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({
       } else {
         // Create new entry
         markedDates[activity.date] = {
-          dots: [{
-            key: activity.id,
-            color: dotColor,
-          }],
+          dots: [
+            {
+              key: activity.id,
+              color: dotColor,
+            },
+          ],
         };
       }
-      
+
       // Add selected state
       if (activity.date === selectedDate) {
         markedDates[activity.date] = {
           ...markedDates[activity.date],
           selected: true,
-          selectedColor: colors.tint + '40', // Add transparency
+          selectedColor: colors.tint + "40", // Add transparency
         };
       }
     });
-    
+
     return markedDates;
   };
-  
+
   // Get activities for selected date
   const getActivitiesForDate = (date: string) => {
-    return activities.filter(activity => activity.date === date);
+    return activities.filter((activity) => activity.date === date);
   };
-  
+
   // Handle date selection
   const handleDateSelect = (day: any) => {
     const dateString = day.dateString;
@@ -84,37 +93,62 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({
       onSelectDate(dateString);
     }
   };
-  
+
   // Get status style
   const getStatusStyle = (status?: string) => {
     switch (status) {
-      case 'completed':
-        return { backgroundColor: colors.success + '20', borderColor: colors.success };
-      case 'cancelled':
-        return { backgroundColor: colors.error + '20', borderColor: colors.error };
-      case 'pending':
+      case "completed":
+        return {
+          backgroundColor: colors.success + "20",
+          borderColor: colors.success,
+        };
+      case "cancelled":
+        return {
+          backgroundColor: colors.error + "20",
+          borderColor: colors.error,
+        };
+      case "pending":
       default:
-        return { backgroundColor: colors.warning + '20', borderColor: colors.warning };
+        return {
+          backgroundColor: colors.warning + "20",
+          borderColor: colors.warning,
+        };
     }
   };
-  
+
+  // Get status text in Indonesian
+  const getStatusText = (status?: string) => {
+    switch (status) {
+      case "completed":
+        return "Selesai";
+      case "cancelled":
+        return "Tidak Selesai";
+      case "pending":
+        return "Menunggu";
+      case "incomplete":
+        return "Belum Selesai";
+      default:
+        return "";
+    }
+  };
+
   // Get text for time of activity
   const getActivityTimeText = (activity: Activity) => {
-    if (!activity.time) return '';
+    if (!activity.time) return "";
     return activity.time;
   };
-  
+
   return (
     <View style={styles.container}>
       <Calendar
         markedDates={getMarkedDates()}
         onDayPress={handleDateSelect}
-        markingType={'multi-dot'}
+        markingType={"multi-dot"}
         theme={{
           calendarBackground: colors.background,
           textSectionTitleColor: colors.text,
           selectedDayBackgroundColor: colors.tint,
-          selectedDayTextColor: '#ffffff',
+          selectedDayTextColor: "#ffffff",
           todayTextColor: colors.tint,
           dayTextColor: colors.text,
           textDisabledColor: colors.tabIconDefault,
@@ -124,7 +158,7 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({
           indicatorColor: colors.tint,
         }}
       />
-      
+
       {selectedDate && (
         <View style={styles.activitiesContainer}>
           <Text style={[styles.dateTitle, { color: colors.text }]}>
@@ -138,33 +172,42 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({
                   style={[
                     styles.activityItem,
                     getStatusStyle(activity.status),
-                    { borderWidth: 1 }
+                    { borderWidth: 1 },
                   ]}
                   onPress={() => onSelectActivity && onSelectActivity(activity)}
                 >
                   <Text style={[styles.activityTitle, { color: colors.text }]}>
                     {activity.title}
                   </Text>
-                  
+
                   {activity.location && (
-                    <Text style={[styles.activityDetails, { color: colors.icon }]}>
+                    <Text
+                      style={[styles.activityDetails, { color: colors.icon }]}
+                    >
                       📍 {activity.location}
                     </Text>
                   )}
-                  
+
                   {activity.time && (
-                    <Text style={[styles.activityDetails, { color: colors.icon }]}>
+                    <Text
+                      style={[styles.activityDetails, { color: colors.icon }]}
+                    >
                       🕒 {getActivityTimeText(activity)}
                     </Text>
                   )}
-                  
+
                   {activity.status && (
-                    <View style={[
-                      styles.statusBadge,
-                      { backgroundColor: getStatusStyle(activity.status).borderColor }
-                    ]}>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        {
+                          backgroundColor: getStatusStyle(activity.status)
+                            .borderColor,
+                        },
+                      ]}
+                    >
                       <Text style={styles.statusText}>
-                        {activity.status.charAt(0).toUpperCase() + activity.status.slice(1)}
+                        {getStatusText(activity.status)}
                       </Text>
                     </View>
                   )}
@@ -185,7 +228,7 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({
 const styles = StyleSheet.create({
   container: {
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginVertical: 10,
   },
   activitiesContainer: {
@@ -194,7 +237,7 @@ const styles = StyleSheet.create({
   },
   dateTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   activitiesList: {
@@ -207,7 +250,7 @@ const styles = StyleSheet.create({
   },
   activityTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   activityDetails: {
@@ -215,7 +258,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   statusBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 10,
     paddingHorizontal: 8,
@@ -223,15 +266,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   statusText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   noActivities: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 20,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
 });
 
-export default ActivityCalendar; 
+export default ActivityCalendar;

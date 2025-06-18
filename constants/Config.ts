@@ -27,6 +27,7 @@ export const ENDPOINTS = {
   ADVISORS_CLINICS: "/advisors/clinics",
   UPDATE_STUDENT_PROFILE: "/students/profile",
   UPDATE_ADVISOR_PROFILE: "/advisors/profile",
+  VISITS: "/visits",
 };
 
 // Timeouts

@@ -7,6 +7,12 @@ export interface ApiResponse<T> {
   data?: T;
   message?: string;
   error?: string;
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
 }
 
 // Login response data structure
@@ -128,6 +134,18 @@ export interface AdvisorProfileUpdateData {
   password?: string; // Optional for updates
 }
 
+// Visit data structure
+export interface VisitData {
+  id: number;
+  visit_date: string;
+  visit_time: string;
+  status: string;
+  location: string;
+  description?: string;
+  photo?: string;
+  score?: number;
+}
+
 // Error handling for fetch
 class ApiError extends Error {
   status: number;
@@ -181,7 +199,9 @@ async function fetchWithTimeout<T>(
 
     // Log the request data
     if (!isSilent) {
-      console.log("API Request:", url, 
+      console.log(
+        "API Request:",
+        url,
         options.body ? JSON.parse(options.body as string) : "No body"
       );
     }
@@ -190,9 +210,9 @@ async function fetchWithTimeout<T>(
       ...options,
       signal: controller.signal,
     });
-    
+
     console.log("API Response Status:", response.status, response.statusText);
-    
+
     // Get response text first
     const responseText = await response.text();
     console.log("API Response Text:", responseText);
@@ -202,12 +222,17 @@ async function fetchWithTimeout<T>(
     // Try to parse the response as JSON, but handle parsing errors gracefully
     let data: any;
     try {
-      data = responseText ? JSON.parse(responseText) : { success: false, message: "Empty response" };
+      data = responseText
+        ? JSON.parse(responseText)
+        : { success: false, message: "Empty response" };
     } catch (jsonError) {
       console.error("JSON parsing error:", jsonError);
       return {
         success: false,
-        message: `Invalid response format: ${responseText.substring(0, 100)}...`,
+        message: `Invalid response format: ${responseText.substring(
+          0,
+          100
+        )}...`,
       };
     }
 
@@ -282,11 +307,11 @@ export const api = {
     formData: FormData
   ): Promise<ApiResponse<any>> => {
     const url = `${API_URL}/logbooks/check-in`;
-    
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-      
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -297,46 +322,51 @@ export const api = {
         body: formData,
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       const responseText = await response.text();
       let data;
       try {
-        data = responseText ? JSON.parse(responseText) : { success: false, message: "Empty response" };
+        data = responseText
+          ? JSON.parse(responseText)
+          : { success: false, message: "Empty response" };
       } catch (jsonError) {
         console.error("JSON parsing error:", jsonError);
         return {
           success: false,
-          message: `Invalid response format: ${responseText.substring(0, 100)}...`,
+          message: `Invalid response format: ${responseText.substring(
+            0,
+            100
+          )}...`,
         };
       }
-      
+
       if (!response.ok) {
         throw new ApiError(
           data.message || "An error occurred during the logbook check-in",
           response.status
         );
       }
-      
+
       return data;
     } catch (error) {
       console.error("API error:", error);
-      
+
       if (error instanceof ApiError) {
         return {
           success: false,
           message: error.message,
         };
       }
-      
+
       if (error instanceof Error && error.name === "AbortError") {
         return {
           success: false,
           message: "Request timeout",
         };
       }
-      
+
       return {
         success: false,
         message: error instanceof Error ? error.message : "Unknown error",
@@ -365,10 +395,41 @@ export const api = {
   },
 
   // Get student dashboard statistics
-  getStudentStatistics: async (
-    token: string
-  ): Promise<ApiResponse<any>> => {
+  getStudentStatistics: async (token: string): Promise<ApiResponse<any>> => {
     const url = `${API_URL}/students/statistics`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
+  // Get advisor dashboard statistics
+  getAdvisorStatistics: async (
+    token: string,
+    params?: {
+      start_date?: string;
+      end_date?: string;
+      page?: number;
+      per_page?: number;
+      student_id?: number;
+    }
+  ): Promise<ApiResponse<any>> => {
+    // Build query string from params
+    const queryParams = new URLSearchParams();
+    if (params) {
+      if (params.start_date)
+        queryParams.append("start_date", params.start_date);
+      if (params.end_date) queryParams.append("end_date", params.end_date);
+      if (params.page) queryParams.append("page", params.page.toString());
+      if (params.per_page)
+        queryParams.append("per_page", params.per_page.toString());
+      if (params.student_id)
+        queryParams.append("student_id", params.student_id.toString());
+    }
+
+    const queryString = queryParams.toString();
+    const url = `${API_URL}/advisors/statistics${
+      queryString ? `?${queryString}` : ""
+    }`;
+
     const options = createRequestOptions("GET", undefined, token);
     return fetchWithTimeout<any>(url, options);
   },
@@ -380,11 +441,11 @@ export const api = {
     formData: FormData
   ): Promise<ApiResponse<any>> => {
     const url = `${API_URL}/logbooks/${checkInId}/check-out`;
-    
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-      
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -395,46 +456,51 @@ export const api = {
         body: formData,
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       const responseText = await response.text();
       let data;
       try {
-        data = responseText ? JSON.parse(responseText) : { success: false, message: "Empty response" };
+        data = responseText
+          ? JSON.parse(responseText)
+          : { success: false, message: "Empty response" };
       } catch (jsonError) {
         console.error("JSON parsing error:", jsonError);
         return {
           success: false,
-          message: `Invalid response format: ${responseText.substring(0, 100)}...`,
+          message: `Invalid response format: ${responseText.substring(
+            0,
+            100
+          )}...`,
         };
       }
-      
+
       if (!response.ok) {
         throw new ApiError(
           data.message || "An error occurred during the logbook check-out",
           response.status
         );
       }
-      
+
       return data;
     } catch (error) {
       console.error("API error:", error);
-      
+
       if (error instanceof ApiError) {
         return {
           success: false,
           message: error.message,
         };
       }
-      
+
       if (error instanceof Error && error.name === "AbortError") {
         return {
           success: false,
           message: "Request timeout",
         };
       }
-      
+
       return {
         success: false,
         message: error instanceof Error ? error.message : "Unknown error",
@@ -463,7 +529,7 @@ export const api = {
     data: RegistrationData
   ): Promise<ApiResponse<any>> => {
     const url = `${API_URL}${ENDPOINTS.STUDENTS_REGISTER}`;
-    
+
     // Ensure all data is properly formatted
     const sanitizedData = {
       name: data.name.trim(),
@@ -474,9 +540,9 @@ export const api = {
       gender: data.gender.trim(),
       student_id: data.student_id.trim(),
       group_id: Number(data.group_id),
-      password: data.password
+      password: data.password,
     };
-    
+
     const options = createRequestOptions("POST", sanitizedData);
     return fetchWithTimeout<any>(url, options);
   },
@@ -486,7 +552,7 @@ export const api = {
     data: AdvisorRegistrationData
   ): Promise<ApiResponse<any>> => {
     const url = `${API_URL}${ENDPOINTS.ADVISORS_REGISTER}`;
-    
+
     // Ensure all data is properly formatted
     const sanitizedData: any = {
       name: data.name.trim(),
@@ -497,9 +563,9 @@ export const api = {
       gender: data.gender.trim(),
       stace_id: Number(data.stase_id),
       type: data.type,
-      password: data.password
+      password: data.password,
     };
-    
+
     // Add specific fields based on preceptor type
     if (data.type === "academic") {
       sanitizedData.npwp = data.npwp?.trim() || "";
@@ -508,7 +574,7 @@ export const api = {
       sanitizedData.location = data.location?.trim() || "";
       sanitizedData.room = data.room?.trim() || "";
     }
-    
+
     const options = createRequestOptions("POST", sanitizedData);
     return fetchWithTimeout<any>(url, options);
   },
@@ -526,7 +592,9 @@ export const api = {
   },
 
   // Get all activities
-  getActivities: async (token: string): Promise<ApiResponse<ActivityData[]>> => {
+  getActivities: async (
+    token: string
+  ): Promise<ApiResponse<ActivityData[]>> => {
     const url = `${API_URL}${ENDPOINTS.ACTIVITIES}`;
     const options = createRequestOptions("GET", undefined, token);
     return fetchWithTimeout<ActivityData[]>(url, options);
@@ -547,10 +615,35 @@ export const api = {
   },
 
   // Get all clinic advisors
-  getClinicAdvisors: async (token: string): Promise<ApiResponse<ClinicAdvisorData[]>> => {
+  getClinicAdvisors: async (
+    token: string
+  ): Promise<ApiResponse<ClinicAdvisorData[]>> => {
     const url = `${API_URL}${ENDPOINTS.ADVISORS_CLINICS}`;
     const options = createRequestOptions("GET", undefined, token);
     return fetchWithTimeout<ClinicAdvisorData[]>(url, options);
+  },
+
+  // Get all students
+  getStudents: async (
+    token: string,
+    params?: {
+      per_page?: number;
+      search?: string;
+    }
+  ): Promise<ApiResponse<any>> => {
+    // Build query string from params
+    const queryParams = new URLSearchParams();
+    if (params) {
+      if (params.per_page)
+        queryParams.append("per_page", params.per_page.toString());
+      if (params.search) queryParams.append("search", params.search);
+    }
+
+    const queryString = queryParams.toString();
+    const url = `${API_URL}/students${queryString ? `?${queryString}` : ""}`;
+
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
   },
 
   // Update student profile
@@ -571,5 +664,125 @@ export const api = {
     const url = `${API_URL}${ENDPOINTS.UPDATE_ADVISOR_PROFILE}`;
     const options = createRequestOptions("PUT", data, token);
     return fetchWithTimeout<UserSessionData>(url, options);
+  },
+
+  // Visit API calls
+  async checkInVisit(
+    token: string,
+    activityId: number,
+    studentId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/${activityId}/${studentId}/check-in`;
+
+      const options: RequestInit = {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      };
+
+      const response = await fetch(url, options);
+      const data = await response.json();
+
+      return data;
+    } catch (error) {
+      console.error("Error in checkInVisit:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async checkOutVisit(
+    token: string,
+    checkInId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/${checkInId}/check-out`;
+
+      const options: RequestInit = {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      };
+
+      const response = await fetch(url, options);
+      const data = await response.json();
+
+      return data;
+    } catch (error) {
+      console.error("Error in checkOutVisit:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getVisits(
+    token: string,
+    studentId: number
+  ): Promise<ApiResponse<VisitData[]>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/student/${studentId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<VisitData[]>(url, options);
+    } catch (error) {
+      console.error("Error in getVisits:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+  
+  async getVisitsByActivity(
+    token: string,
+    activityId: number,
+    studentId: number
+  ): Promise<ApiResponse<{
+    activity: { id: string; name: string };
+    student: { id: string; name: string; nim: string };
+    visits: any;
+  }>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/activities/${activityId}/${studentId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<{
+        activity: { id: string; name: string };
+        student: { id: string; name: string; nim: string };
+        visits: any;
+      }>(url, options);
+    } catch (error) {
+      console.error("Error in getVisitsByActivity:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getVisitDetails(
+    token: string,
+    visitId: number
+  ): Promise<ApiResponse<VisitData>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/${visitId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<VisitData>(url, options);
+    } catch (error) {
+      console.error("Error in getVisitDetails:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   },
 };

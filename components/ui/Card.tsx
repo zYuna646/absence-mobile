@@ -4,7 +4,7 @@ import { useThemeColor } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 interface CardProps {
-  title: string;
+  title: string | ReactNode;
   children: ReactNode;
   style?: ViewStyle;
 }
@@ -24,7 +24,11 @@ const Card: React.FC<CardProps> = ({ title, children, style }) => {
         style,
       ]}
     >
-      <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
+      {typeof title === 'string' ? (
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
+      ) : (
+        title
+      )}
       {children}
     </View>
   );
