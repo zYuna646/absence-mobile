@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 
@@ -78,6 +86,7 @@ export default function DashboardScreen() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [statistics, setStatistics] = useState<StudentStatistics | null>(null);
   const router = useRouter();
 
@@ -95,10 +104,10 @@ export default function DashboardScreen() {
     try {
       setLoading(true);
       const response = await api.getStudentStatistics(token!);
-      
+
       if (response.success && response.data) {
         setStatistics(response.data);
-        
+
         // Convert calendar data to activities
         const calendarActivities = convertToActivities(response.data);
         setActivities(calendarActivities);
@@ -109,34 +118,41 @@ export default function DashboardScreen() {
       console.error("Error fetching statistics:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   // Convert API data to activities format
   const convertToActivities = (data: StudentStatistics): Activity[] => {
     const activities: Activity[] = [];
-    
+
     // Add logbook entries to activities
     if (data.logbooks && data.logbooks.list) {
-      data.logbooks.list.forEach(logbook => {
+      data.logbooks.list.forEach((logbook) => {
         // Format date to yyyy-mm-dd for calendar
-        const dateParts = logbook.date.split('-');
+        const dateParts = logbook.date.split("-");
         const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-        
+
         activities.push({
           id: logbook.id.toString(),
           title: logbook.activity.name,
           date: formattedDate,
           type: "lainnya", // Use a valid ActivityType
           location: logbook.location,
-          time: `${logbook.check_in_time.substring(0, 5)} - ${logbook.check_out_time.substring(0, 5)}`,
-          status: logbook.status === "verified" ? "completed" : 
-                 logbook.status === "unverified" ? "pending" : 
-                 "pending", // Map to valid status values
+          time: `${logbook.check_in_time.substring(
+            0,
+            5
+          )} - ${logbook.check_out_time.substring(0, 5)}`,
+          status:
+            logbook.status === "verified"
+              ? "completed"
+              : logbook.status === "unverified"
+              ? "pending"
+              : "pending", // Map to valid status values
         });
       });
     }
-    
+
     return activities;
   };
 
@@ -190,23 +206,38 @@ export default function DashboardScreen() {
   // Handle activity selection
   const handleActivitySelect = (activity: Activity) => {
     // Navigate to the activity detail page
-    if (activity.id) {
-      router.push({
-        pathname: "/laporan",
-        params: { 
-          activityId: activity.id,
-          activityName: activity.title
-        }
-      });
-    }
+    console.log("selected activity", activity);
+
+    // if (activity.id) {
+    //   router.push({
+    //     pathname: "/laporan",
+    //     params: {
+    //       activityId: activity.id,
+    //       activityName: activity.title,
+    //     },
+    //   });
+    // }
   };
 
   // Navigate to logbook entry screen
   const navigateToLogbook = (logbookItem: LogbookItem) => {
     router.push({
       pathname: "/laporan",
-      params: { activityId: logbookItem.activity.id, activityName: logbookItem.activity.name }
+      params: {
+        activityId: logbookItem.activity.id,
+        activityName: logbookItem.activity.name,
+      },
     });
+  };
+
+  // Handle refresh
+  const onRefresh = () => {
+    setRefreshing(true);
+    if (role === "student" && token) {
+      fetchStudentStatistics();
+    } else {
+      setRefreshing(false);
+    }
   };
 
   // Render content based on role
@@ -223,7 +254,7 @@ export default function DashboardScreen() {
             </View>
           );
         }
-        
+
         if (!statistics) {
           return (
             <Card title="Ringkasan Aktivitas">
@@ -233,19 +264,28 @@ export default function DashboardScreen() {
             </Card>
           );
         }
-        
+
         return (
           <View style={styles.roleContent}>
             <Card title="Ringkasan Aktivitas">
               <StatisticRow
                 items={[
-                  { value: statistics.logbooks.statistics.total, label: "Total" },
-                  { value: statistics.logbooks.statistics.verified, label: "Terverifikasi" },
-                  { value: statistics.logbooks.statistics.unverified, label: "Menunggu" },
+                  {
+                    value: statistics.logbooks.statistics.total,
+                    label: "Total",
+                  },
+                  {
+                    value: statistics.logbooks.statistics.verified,
+                    label: "Terverifikasi",
+                  },
+                  {
+                    value: statistics.logbooks.statistics.unverified,
+                    label: "Menunggu",
+                  },
                 ]}
               />
             </Card>
-            
+
             {statistics.logbooks.list.length > 0 && (
               <Card title="Kegiatan Terbaru">
                 {statistics.logbooks.list.slice(0, 3).map((logbook, index) => (
@@ -307,18 +347,20 @@ export default function DashboardScreen() {
         onNotificationPress={handleNotificationIconPress}
         onProfilePress={handleProfilePress}
         notificationCount={getUnreadCount()}
+        onLogout={handleLogout}
       />
-      
-      <TouchableOpacity 
-        style={[styles.logoutButton, { backgroundColor: colors.tint }]} 
-        onPress={handleLogout}
-      >
-        <Ionicons name="log-out-outline" size={20} color="white" />
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-      
-      <ScrollView contentContainerStyle={styles.scrollContent}>
 
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.tint]}
+            tintColor={colors.tint}
+          />
+        }
+      >
         {showNotifications && (
           <NotificationPanel
             notifications={notifications}
@@ -400,37 +442,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 8,
   },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  logoutText: {
-    color: 'white',
-    marginLeft: 8,
-    fontWeight: '600',
-  },
   loadingContainer: {
     padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingText: {
     marginTop: 10,
     fontSize: 14,
   },
   emptyText: {
-    textAlign: 'center',
+    textAlign: "center",
     padding: 15,
     fontSize: 14,
   },
   calendarLoading: {
     height: 250,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

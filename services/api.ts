@@ -346,9 +346,10 @@ export const api = {
 
   // Get student logbooks
   getStudentLogbooks: async (
-    token: string
+    token: string,
+    activityId: number
   ): Promise<ApiResponse<any>> => {
-    const url = `${API_URL}/students/my-logbooks`;
+    const url = `${API_URL}/students/my-logbooks/${activityId}`;
     const options = createRequestOptions("GET", undefined, token);
     return fetchWithTimeout<any>(url, options);
   },

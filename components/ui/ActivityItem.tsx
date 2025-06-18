@@ -25,19 +25,19 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
 }) => {
   const colors = useThemeColor();
   const colorScheme = useColorScheme();
-  
+
   // Use a divider color based on the theme
-  const dividerColor = colorScheme === 'dark' ? '#444' : '#E5E5E5';
+  const dividerColor = colorScheme === "dark" ? "#444" : "#E5E5E5";
 
   // Get status color
   const getStatusColor = (status?: string) => {
     switch (status) {
       case "verified":
+      case "complete":
         return colors.success || "#28a745";
       case "unverified":
-        return colors.warning || "#ffc107";
       case "incomplete":
-        return colors.error || "#dc3545";
+        return colors.warning || "#ffc107";
       default:
         return colors.icon || "#6c757d";
     }
@@ -62,11 +62,22 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
           {timestamp}
         </Text>
         {status && (
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(status) },
+            ]}
+          >
             <Text style={styles.statusText}>
-              {status === "verified" ? "Terverifikasi" : 
-               status === "unverified" ? "Menunggu" : 
-               status === "incomplete" ? "Belum Selesai" : status}
+              {status === "incomplete"
+                ? "Belum Selesai"
+                : status === "complete"
+                ? "Selesai"
+                : status === "verified"
+                ? "Terverifikasi"
+                : status === "unverified"
+                ? "Menunggu"
+                : status}
             </Text>
           </View>
         )}
@@ -81,11 +92,11 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
           {itemContent}
         </TouchableOpacity>
       ) : (
-        <View style={styles.activityItem}>
-          {itemContent}
-        </View>
+        <View style={styles.activityItem}>{itemContent}</View>
       )}
-      {showDivider && <View style={[styles.divider, { backgroundColor: dividerColor }]} />}
+      {showDivider && (
+        <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+      )}
     </>
   );
 };
@@ -128,4 +139,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ActivityItem; 
+export default ActivityItem;

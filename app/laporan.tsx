@@ -148,8 +148,7 @@ export default function LaporanScreen() {
     try {
       setLoadingLogbooks(true);
       
-      const response = await api.getStudentLogbooks(token);
-      
+      const response = await api.getStudentLogbooks(token, activityId);
       if (response.success && response.data) {
         setLogbooks(response.data);
         

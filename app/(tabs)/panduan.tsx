@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Linking, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -18,53 +18,47 @@ export default function PanduanScreen() {
   const { token } = useUser();
   const [files, setFiles] = useState<FileData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<number | null>(null);
   
   // Fetch guide files from API
-  useEffect(() => {
-    const fetchFiles = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await api.getFiles(token || undefined);
-        
-        if (response.success && response.data) {
-          setFiles(response.data);
-        } else {
-          setError(response.message || 'Failed to fetch guide files');
-        }
-      } catch (err) {
-        console.error('Error fetching files:', err);
-        setError('An error occurred while fetching guide files');
-      } finally {
-        setLoading(false);
+  const fetchFiles = async () => {
+    try {
+      setError(null);
+      
+      const response = await api.getFiles(token || undefined);
+      
+      if (response.success && response.data) {
+        setFiles(response.data);
+      } else {
+        setError(response.message || 'Failed to fetch guide files');
       }
-    };
+    } catch (err) {
+      console.error('Error fetching files:', err);
+      setError('An error occurred while fetching guide files');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
+    setLoading(true);
     fetchFiles();
   }, [token]);
+
+  // Handle refresh
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchFiles();
+  };
 
   // Handle retry button click
   const handleRetry = () => {
     setLoading(true);
     setError(null);
-    api.getFiles(token || undefined)
-      .then(response => {
-        if (response.success && response.data) {
-          setFiles(response.data);
-        } else {
-          setError(response.message || 'Failed to fetch guide files');
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching files:', err);
-        setError('An error occurred while fetching guide files');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    fetchFiles();
   };
 
   // Download and share a file
@@ -128,8 +122,18 @@ export default function PanduanScreen() {
 
       </View>
       
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {loading ? (
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.tint]}
+            tintColor={colors.tint}
+          />
+        }
+      >
+        {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.tint} />
             <Text style={[styles.loadingText, { color: colors.text }]}>

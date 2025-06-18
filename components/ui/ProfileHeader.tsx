@@ -10,6 +10,7 @@ interface ProfileHeaderProps {
   onProfilePress?: () => void;
   onNotificationPress?: () => void;
   notificationCount?: number;
+  onLogout?: () => void;
 }
 
 /**
@@ -22,6 +23,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onProfilePress,
   onNotificationPress,
   notificationCount = 0,
+  onLogout,
 }) => {
   const colors = useThemeColor();
 
@@ -29,6 +31,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <View style={styles.gradientContainer}>
       <View style={styles.container}>
         <View style={styles.iconContainer}>
+          {onLogout && (
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onLogout}
+            >
+              <Ionicons name="log-out-outline" size={24} color="white" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.iconButton}
             onPress={onNotificationPress}
@@ -87,6 +97,7 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: 8,
     position: 'relative',
+    marginLeft: 10,
   },
   badge: {
     position: 'absolute',
