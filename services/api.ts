@@ -91,6 +91,12 @@ export interface ActivityData {
   indicators: string;
   clinic_advisor_id?: number;
   advisor_clinic_name?: string;
+  advisor_clinic_id?: number;
+  location?: string;
+  room?: string;
+  is_lock: number;
+  lock_date: string | null;
+  unlock_date: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -872,7 +878,7 @@ export const api = {
   async verifyLogbook(
     token: string,
     checkOutId: number,
-    data: { status: string; notes?: string }
+    data: { score: number; notes?: string }
   ): Promise<ApiResponse<any>> {
     try {
       const url = `${API_URL}${ENDPOINTS.LOGBOOKS}/${checkOutId}/verify`;
@@ -1039,6 +1045,42 @@ export const api = {
       return fetchWithTimeout<any>(url, options);
     } catch (error) {
       console.error("Error in getNotificationHistory:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Lock activity
+  async lockActivity(
+    token: string,
+    activityId: number
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/activities/${activityId}/lock`;
+      const options = createRequestOptions("POST", {}, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in lockActivity:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Unlock activity
+  async unlockActivity(
+    token: string,
+    activityId: number
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/activities/${activityId}/unlock`;
+      const options = createRequestOptions("POST", {}, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in unlockActivity:", error);
       return {
         success: false,
         message: error instanceof Error ? error.message : "Unknown error",

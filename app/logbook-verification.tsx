@@ -148,7 +148,7 @@ export default function LogbookVerificationScreen() {
 
       // Call the API to verify logbook
       const response = await api.verifyLogbook(token, logbook.check_out.id, {
-        status: "verified",
+        score: scoreValue,
         notes: note,
       });
 

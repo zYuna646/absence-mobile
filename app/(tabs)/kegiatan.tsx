@@ -292,8 +292,82 @@ export default function KegiatanScreen() {
     setShowEditModal(true);
   };
 
+  // Handle lock/unlock activity
+  const handleToggleActivity = async (activity: ActivityData, action: 'unlock' | 'lock') => {
+    if (!token) return;
+    
+    const actionText = action === 'unlock' ? 'Buka' : 'Tutup';
+    const message = action === 'unlock' 
+      ? 'Membuka kegiatan akan memungkinkan mahasiswa untuk membuat logbook baru.'
+      : 'Menutup kegiatan akan mencegah mahasiswa membuat logbook baru.';
+    
+    Alert.alert(
+      `${actionText} Kegiatan`,
+      message + ' Lanjutkan?',
+      [
+        { text: "Batal", style: "cancel" },
+        { 
+          text: actionText, 
+          style: action === 'lock' ? "destructive" : "default",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              
+              const response = action === 'unlock' 
+                ? await api.unlockActivity(token, activity.id)
+                : await api.lockActivity(token, activity.id);
+              
+              if (response.success) {
+                Alert.alert("Success", `Kegiatan berhasil di${action === 'unlock' ? 'buka' : 'tutup'}`);
+                // Reload activities to get updated status
+                loadActivities();
+              } else {
+                Alert.alert("Error", response.message || `Gagal ${actionText.toLowerCase()} kegiatan`);
+              }
+            } catch (error) {
+              console.error(`Error ${action} activity:`, error);
+              Alert.alert("Error", `Gagal ${actionText.toLowerCase()} kegiatan`);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Check if activity can be unlocked (is_lock = 1 and lock_date = null)
+  const canUnlock = (activity: ActivityData): boolean => {
+    return activity.is_lock === 1 && activity.lock_date === null;
+  };
+
+  // Check if activity is currently locked
+  const isLocked = (activity: ActivityData): boolean => {
+    return activity.is_lock === 1 && activity.lock_date !== null;
+  };
+
+  // Check if activity is currently unlocked
+  const isUnlocked = (activity: ActivityData): boolean => {
+    return activity.is_lock === 0;
+  };
+
+  // Get activity status text and color
+  const getActivityStatus = (activity: ActivityData) => {
+    if (isUnlocked(activity)) {
+      return { text: "Terbuka", color: colors.success || "#28a745" };
+    } else if (isLocked(activity)) {
+      return { text: "Tertutup", color: colors.error || "#dc3545" };
+    } else if (canUnlock(activity)) {
+      return { text: "Tertutup", color: colors.error || "#dc3545" };
+    } else {
+      return { text: "Tidak Diketahui", color: colors.icon || "#6c757d" };
+    }
+  };
+
   // Render each activity card
   const renderActivity = (activity: ActivityData) => {
+    const status = getActivityStatus(activity);
+    
     return (
       <TouchableOpacity key={activity.id} onPress={() => handleActivityClick(activity)}>
         <Card title={activity.name}>
@@ -301,14 +375,29 @@ export default function KegiatanScreen() {
             <Ionicons name="person" size={14} color={colors.tint} style={{ marginRight: 4 }} />
             Pembimbing: {activity.advisor_clinic_name || "Unknown Advisor"}
           </Text>
+          
+          {activity.location && (
+            <Text style={[{ fontSize: 14, marginBottom: 8, color: colors.icon }]}>
+              <Ionicons name="location" size={14} color={colors.icon} style={{ marginRight: 4 }} />
+              {activity.location}{activity.room ? `, Ruang ${activity.room}` : ''}
+            </Text>
+          )}
+          
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={[{ fontSize: 14, fontWeight: '500', color: colors.text }]}>Status: </Text>
+            <View style={[{ paddingVertical: 2, paddingHorizontal: 8, borderRadius: 4, marginLeft: 4, backgroundColor: status.color }]}>
+              <Text style={{ fontSize: 12, fontWeight: '500', color: 'white' }}>{status.text}</Text>
+            </View>
+          </View>
+          
           {activity.created_at && (
             <Text style={styles.date}>
               Created: {new Date(activity.created_at).toLocaleDateString()}
             </Text>
           )}
           
-          {role === "student" && (
-            <View style={styles.reportButtonContainer}>
+          <View style={styles.activityButtonsContainer}>
+            {role === "student" && (
               <TouchableOpacity 
                 style={[styles.reportButton, { backgroundColor: colors.tint }]}
                 onPress={() => handleReportPress(activity)}
@@ -316,8 +405,33 @@ export default function KegiatanScreen() {
                 <Ionicons name="document-text-outline" size={16} color="white" style={styles.reportIcon} />
                 <Text style={styles.reportText}>Laporan</Text>
               </TouchableOpacity>
-            </View>
-          )}
+            )}
+            
+            {role === "advisor" && (
+              <View style={styles.advisorButtonsContainer}>
+                {(canUnlock(activity) || isLocked(activity)) && (
+                  <TouchableOpacity 
+                    style={[styles.activityActionButton, { backgroundColor: colors.success || "#28a745" }]}
+                    onPress={() => handleToggleActivity(activity, 'unlock')}
+                    disabled={isLocked(activity)}
+                  >
+                    <Ionicons name="lock-open-outline" size={16} color="white" style={styles.buttonIcon} />
+                    <Text style={styles.activityActionText}>Buka</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {isUnlocked(activity) && (
+                  <TouchableOpacity 
+                    style={[styles.activityActionButton, { backgroundColor: colors.warning || "#ffc107" }]}
+                    onPress={() => handleToggleActivity(activity, 'lock')}
+                  >
+                    <Ionicons name="lock-closed-outline" size={16} color="white" style={styles.buttonIcon} />
+                    <Text style={styles.activityActionText}>Tutup</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
         </Card>
       </TouchableOpacity>
     );
@@ -798,6 +912,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: "500",
   },
+
   date: {
     fontSize: 12,
     color: "#888",
@@ -884,9 +999,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: 'rgba(0,0,0,0.05)',
   },
-  reportButtonContainer: {
+  activityButtonsContainer: {
     alignItems: 'flex-end',
     marginTop: 8,
+  },
+  advisorButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
   },
   reportButton: {
     flexDirection: 'row',
@@ -895,11 +1014,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 6,
   },
+  activityActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
   reportIcon: {
+    marginRight: 4,
+  },
+  buttonIcon: {
     marginRight: 4,
   },
   reportText: {
     fontSize: 14,
+    fontWeight: '500',
+    color: 'white',
+  },
+  activityActionText: {
+    fontSize: 12,
     fontWeight: '500',
     color: 'white',
   },

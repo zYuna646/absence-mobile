@@ -22,6 +22,7 @@ import { useUser } from "@/context/UserContext";
 import { useLocalSearchParams, router } from "expo-router";
 import Card from "@/components/ui/Card";
 import PrimaryButton from "@/components/PrimaryButton";
+import BottomSheetSelector from "@/components/ui/BottomSheetSelector";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { api, ActivityData } from "@/services/api";
@@ -59,7 +60,6 @@ export default function AbsensiCreateScreen() {
 
   // Modal state
   const [showActivityModal, setShowActivityModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   // Load activities and request permissions on mount
   useEffect(() => {
@@ -96,7 +96,10 @@ export default function AbsensiCreateScreen() {
           id: activityId,
           name: activityName,
           indicators: "",
-          advisor_clinic_name: ""
+          advisor_clinic_name: "",
+          is_lock: 0,
+          lock_date: null,
+          unlock_date: null
         });
       }
     })();
@@ -320,10 +323,103 @@ export default function AbsensiCreateScreen() {
     }
   };
 
+  // Handle activity selection
+  const handleSelectActivity = (selectedActivity: ActivityData) => {
+    setSelectedActivity(selectedActivity);
+    setShowActivityModal(false);
+  };
+
+  // Custom render for activity items
+  const renderCustomActivityItem = (item: ActivityData, isSelected: boolean) => {
+    const isLocked = item.is_lock === 1;
+    
+    return (
+      <TouchableOpacity
+        style={[
+          styles.activityItem,
+          isSelected && { backgroundColor: `${colors.tint}20` },
+          isLocked && { opacity: 0.5, backgroundColor: `${colors.icon}10` }
+        ]}
+        onPress={() => {
+          if (!isLocked) {
+            handleSelectActivity(item);
+          } else {
+            Alert.alert(
+              "Kegiatan Tertutup",
+              "Kegiatan ini sedang tertutup dan tidak dapat dipilih untuk absensi."
+            );
+          }
+        }}
+        disabled={isLocked}
+      >
+        <View style={styles.activityHeader}>
+          <Text style={[
+            styles.activityName, 
+            { color: isLocked ? colors.icon : colors.text }
+          ]}>
+            {item.name}
+          </Text>
+          <View style={styles.activityStatus}>
+            <Ionicons 
+              name={isLocked ? "lock-closed" : "lock-open"} 
+              size={16} 
+              color={isLocked ? colors.error || "#dc3545" : colors.success || "#28a745"} 
+            />
+            <Text style={{
+              fontSize: 12,
+              fontWeight: "500",
+              color: isLocked ? colors.error || "#dc3545" : colors.success || "#28a745",
+              marginLeft: 4
+            }}>
+              {isLocked ? "Tertutup" : "Terbuka"}
+            </Text>
+          </View>
+        </View>
+        
+        {item.advisor_clinic_name && (
+          <Text style={[
+            styles.activityDetail, 
+            { color: isLocked ? colors.icon : colors.text }
+          ]}>
+            Pembimbing: {item.advisor_clinic_name}
+          </Text>
+        )}
+        
+        {item.location && (
+          <Text style={[
+            styles.activityDetail, 
+            { color: isLocked ? colors.icon : colors.text }
+          ]}>
+            Lokasi: {item.location}{item.room ? `, Ruang ${item.room}` : ''}
+          </Text>
+        )}
+        
+        {isLocked && (
+          <Text style={[
+            styles.lockedNote,
+            { color: colors.error || "#dc3545" }
+          ]}>
+            <Ionicons name="information-circle" size={12} color={colors.error || "#dc3545"} />
+            {" "}Kegiatan tidak tersedia untuk absensi
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   // Handle form submission
   const handleSubmit = () => {
     if (!selectedActivity && mode !== "checkout") {
       Alert.alert("Error", "Pilih kegiatan terlebih dahulu");
+      return;
+    }
+
+    // Check if selected activity is locked for check-in
+    if (mode !== "checkout" && selectedActivity?.is_lock === 1) {
+      Alert.alert(
+        "Kegiatan Tertutup",
+        "Kegiatan yang dipilih sedang tertutup. Tidak dapat melakukan check-in."
+      );
       return;
     }
     
@@ -454,104 +550,6 @@ export default function AbsensiCreateScreen() {
                     color={colors.icon} 
                   />
                 </TouchableOpacity>
-
-                {/* Activity Selection Modal */}
-                <Modal
-                  visible={showActivityModal}
-                  transparent={true}
-                  animationType="slide"
-                  onRequestClose={() => setShowActivityModal(false)}
-                >
-                  <View style={styles.modalOverlay}>
-                    <View 
-                      style={[
-                        styles.modalContent,
-                        { backgroundColor: colors.background }
-                      ]}
-                    >
-                      <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: colors.text }]}>
-                          Pilih Kegiatan
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => setShowActivityModal(false)}
-                          style={styles.modalCloseButton}
-                        >
-                          <Ionicons name="close" size={24} color={colors.text} />
-                        </TouchableOpacity>
-                      </View>
-
-                      <View 
-                        style={[
-                          styles.searchContainer,
-                          { 
-                            backgroundColor: colors.inputBackground,
-                            borderColor: colors.inputBorder 
-                          }
-                        ]}
-                      >
-                        <Ionicons name="search" size={20} color={colors.icon} />
-                        <TextInput
-                          style={[styles.searchInput, { color: colors.text }]}
-                          placeholder="Cari kegiatan..."
-                          placeholderTextColor={colors.icon}
-                          value={searchQuery}
-                          onChangeText={setSearchQuery}
-                        />
-                        {searchQuery ? (
-                          <TouchableOpacity
-                            onPress={() => setSearchQuery("")}
-                            style={styles.clearButton}
-                          >
-                            <Ionicons name="close-circle" size={20} color={colors.icon} />
-                          </TouchableOpacity>
-                        ) : null}
-                      </View>
-
-                      <FlatList
-                        data={activities.filter(activity =>
-                          activity.name.toLowerCase().includes(searchQuery.toLowerCase())
-                        )}
-                        keyExtractor={(item) => item.id.toString()}
-                        renderItem={({ item }) => (
-                          <TouchableOpacity
-                            style={[
-                              styles.modalItem,
-                              {
-                                backgroundColor:
-                                  selectedActivity?.id === item.id
-                                    ? colors.tint
-                                    : 'transparent',
-                              },
-                            ]}
-                            onPress={() => {
-                              setSelectedActivity(item);
-                              setShowActivityModal(false);
-                            }}
-                          >
-                            <Text
-                              style={[
-                                styles.modalItemText,
-                                {
-                                  color:
-                                    selectedActivity?.id === item.id
-                                      ? 'white'
-                                      : colors.text,
-                                },
-                              ]}
-                            >
-                              {item.name}
-                            </Text>
-                            {selectedActivity?.id === item.id && (
-                              <Ionicons name="checkmark" size={24} color="white" />
-                            )}
-                          </TouchableOpacity>
-                        )}
-                        contentContainerStyle={styles.modalList}
-                      />
-                    </View>
-                  </View>
-                </Modal>
               </View>
             )}
           </Card>
@@ -698,7 +696,7 @@ export default function AbsensiCreateScreen() {
           )}
           
           {/* Score field - only show for check-out */}
-          {mode === "checkout" && (
+          {/* {mode === "checkout" && (
             <View style={styles.formGroup}>
               <Text style={[styles.label, { color: colors.text }]}>
                 Nilai (Opsional)
@@ -721,7 +719,7 @@ export default function AbsensiCreateScreen() {
                 }}
               />
             </View>
-          )}
+          )} */}
         </Card>
         
         <PrimaryButton
@@ -737,6 +735,34 @@ export default function AbsensiCreateScreen() {
           style={styles.submitButton}
         />
       </ScrollView>
+
+      {/* Activity Selector Modal */}
+      <BottomSheetSelector
+        visible={showActivityModal}
+        title="Pilih Kegiatan"
+        items={activities.map(activity => ({
+          id: activity.id,
+          name: activity.name,
+          subtitle: activity.advisor_clinic_name
+        }))}
+        selectedId={selectedActivity?.id}
+        loading={loadingActivities}
+        emptyText="Tidak ada kegiatan tersedia"
+        onSelect={(item) => {
+          const selectedActivity = activities.find(a => a.id === item.id);
+          if (selectedActivity) {
+            handleSelectActivity(selectedActivity);
+          }
+        }}
+        onClose={() => setShowActivityModal(false)}
+        renderItem={(item, isSelected) => {
+          const activityData = activities.find(a => a.id === item.id);
+          if (activityData) {
+            return renderCustomActivityItem(activityData, isSelected);
+          }
+          return null;
+        }}
+      />
     </View>
   );
 }
@@ -771,6 +797,8 @@ const styles = StyleSheet.create({
   activityItem: {
     padding: 12,
     borderRadius: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   activityItemText: {
     fontSize: 16,
@@ -910,61 +938,25 @@ const styles = StyleSheet.create({
   selectButtonText: {
     fontSize: 16,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '80%',
-  },
-  modalHeader: {
+
+  // Activity item styles
+  activityHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  searchContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    margin: 16,
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 0.5,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    marginLeft: 8,
-    padding: 4,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  modalList: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 8,
     marginBottom: 8,
   },
-  modalItemText: {
-    fontSize: 16,
+  activityStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  activityDetail: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  lockedNote: {
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 }); 

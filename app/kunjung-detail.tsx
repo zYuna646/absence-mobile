@@ -25,10 +25,17 @@ interface ActivityData {
   name: string;
   indicators?: string;
   advisor_clinic_name?: string;
+  advisor_clinic_id?: number;
+  location?: string;
+  room?: string;
+  is_lock: number;
+  lock_date: string | null;
+  unlock_date: string | null;
 }
 import { useLocalSearchParams, router } from "expo-router";
 import Card from "@/components/ui/Card";
 import PrimaryButton from "@/components/PrimaryButton";
+import BottomSheetSelector from "@/components/ui/BottomSheetSelector";
 
 interface Student {
   id: number;
@@ -222,12 +229,18 @@ export default function KunjungDetailScreen() {
             name: "Kegiatan Praktek 1",
             indicators: "Indikator kegiatan praktek 1",
             advisor_clinic_name: "Dr. Pembimbing 1",
+            is_lock: 0,
+            lock_date: null,
+            unlock_date: null,
           },
           {
             id: 2,
             name: "Kegiatan Praktek 2",
             indicators: "Indikator kegiatan praktek 2",
             advisor_clinic_name: "Dr. Pembimbing 2",
+            is_lock: 1,
+            lock_date: "2024-01-15",
+            unlock_date: null,
           },
         ];
 
@@ -243,12 +256,18 @@ export default function KunjungDetailScreen() {
           name: "Kegiatan Praktek 1",
           indicators: "Indikator kegiatan praktek 1",
           advisor_clinic_name: "Dr. Pembimbing 1",
+          is_lock: 0,
+          lock_date: null,
+          unlock_date: null,
         },
         {
           id: 2,
           name: "Kegiatan Praktek 2",
           indicators: "Indikator kegiatan praktek 2",
           advisor_clinic_name: "Dr. Pembimbing 2",
+          is_lock: 1,
+          lock_date: "2024-01-15",
+          unlock_date: null,
         },
       ];
 
@@ -576,9 +595,46 @@ export default function KunjungDetailScreen() {
     return visits.find((visit) => isToday(visit.date)) || null;
   };
 
+  // Check if activity is locked
+  const isActivityLocked = (): boolean => {
+    if (!activity) return false;
+    // Activity is locked if is_lock = 1 and lock_date is not null
+    return activity.is_lock === 1 && activity.lock_date !== null;
+  };
+
+  // Check if activity is unlocked (available for use)
+  const isActivityUnlocked = (): boolean => {
+    if (!activity) return false;
+    // Activity is unlocked if is_lock = 0
+    return activity.is_lock === 0;
+  };
+
+  // Get activity status text
+  const getActivityStatusText = (): string => {
+    if (!activity) return "";
+    
+    if (isActivityUnlocked()) {
+      return "Kegiatan terbuka";
+    } else if (isActivityLocked()) {
+      return "Kegiatan tertutup";
+    }
+   else {
+      return "Status tidak diketahui";
+    }
+  };
+
   // Handle create visit button press - more general approach
   const handleCreateVisit = () => {
     if (!student || !activity) return;
+
+    // Check if activity is locked
+    if (activity?.is_lock === 1) {
+      Alert.alert(
+        "Kegiatan Tertutup",
+        "Kegiatan ini sedang tertutup. Tidak dapat membuat kunjungan baru saat kegiatan tertutup."
+      );
+      return;
+    }
 
     // Check if there's already any visit today
     if (hasVisitToday()) {
@@ -602,15 +658,13 @@ export default function KunjungDetailScreen() {
     });
   };
 
-  // Render activity item
-  const renderActivityItem = ({ item }: { item: ActivityData }) => {
+  // Custom render for activity items
+  const renderCustomActivityItem = (item: ActivityData, isSelected: boolean) => {
     return (
       <TouchableOpacity
         style={[
           styles.activityItem,
-          activity?.id === item.id && {
-            backgroundColor: `${colors.tint}20`,
-          },
+          isSelected && { backgroundColor: `${colors.tint}20` },
         ]}
         onPress={() => handleSelectActivity(item)}
       >
@@ -620,6 +674,11 @@ export default function KunjungDetailScreen() {
         {item.advisor_clinic_name && (
           <Text style={[styles.activityDetail, { color: colors.icon }]}>
             Pembimbing: {item.advisor_clinic_name}
+          </Text>
+        )}
+        {item.location && (
+          <Text style={[styles.activityDetail, { color: colors.icon }]}>
+            Lokasi: {item.location}{item.room ? `, Ruang ${item.room}` : ''}
           </Text>
         )}
       </TouchableOpacity>
@@ -1105,37 +1164,6 @@ export default function KunjungDetailScreen() {
             </Text>
             <Ionicons name="chevron-down" size={20} color={colors.icon} />
           </TouchableOpacity>
-
-          {/* Activity selector dropdown */}
-          {showActivitySelector && (
-            <View
-              style={[
-                styles.activitySelectorContainer,
-                { borderColor: colors.inputBorder || "#e0e0e0" },
-              ]}
-            >
-              {loadingActivities ? (
-                <View style={styles.activityLoading}>
-                  <ActivityIndicator size="small" color={colors.tint} />
-                  <Text style={{ color: colors.text, marginTop: 8 }}>
-                    Loading kegiatan...
-                  </Text>
-                </View>
-              ) : activities.length === 0 ? (
-                <Text style={[styles.activityEmpty, { color: colors.icon }]}>
-                  Tidak ada kegiatan tersedia
-                </Text>
-              ) : (
-                <FlatList
-                  data={activities}
-                  renderItem={renderActivityItem}
-                  keyExtractor={(item) => item.id.toString()}
-                  style={styles.activityList}
-                  contentContainerStyle={styles.activityListContent}
-                />
-              )}
-            </View>
-          )}
         </Card>
 
         {/* Activity Details Card */}
@@ -1174,6 +1202,23 @@ export default function KunjungDetailScreen() {
               <Ionicons name="person" size={16} color={colors.tint} />
               <Text style={[styles.advisorText, { color: colors.text }]}>
                 Pembimbing: {activity.advisor_clinic_name || "Unknown"}
+              </Text>
+            </View>
+
+            {/* Activity Status */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+              <Ionicons 
+                name={activity?.is_lock === 0 ? "lock-open" : "lock-closed"} 
+                size={16} 
+                color={activity?.is_lock === 0 ? colors.success || "#28a745" : colors.error || "#dc3545"} 
+              />
+              <Text style={{
+                fontSize: 14,
+                fontWeight: "500",
+                color: activity?.is_lock === 0 ? colors.success || "#28a745" : colors.error || "#dc3545",
+                marginLeft: 8 
+              }}>
+                {activity?.is_lock === 0 ? "Kegiatan terbuka" : "Kegiatan tertutup"}
               </Text>
             </View>
 
@@ -1220,13 +1265,46 @@ export default function KunjungDetailScreen() {
                       : "Sudah Ada Kunjungan Hari Ini"}
                   </Text>
                 </View>
+              ) : activity?.is_lock === 1 ? (
+                <View style={{ alignItems: "center" }}>
+                  <View
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: colors.icon || "#6c757d", opacity: 0.6 },
+                    ]}
+                  >
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={18}
+                      color="white"
+                      style={styles.actionIcon}
+                    />
+                    <Text style={styles.actionButtonText}>
+                      Check-in Tidak Tersedia
+                    </Text>
+                  </View>
+                  <Text style={{
+                    fontSize: 12,
+                    marginTop: 8,
+                    textAlign: "center",
+                    fontWeight: "500",
+                    color: colors.error || "#dc3545"
+                  }}>
+                    <Ionicons name="information-circle" size={14} color={colors.error || "#dc3545"} />
+                    {" "}Kegiatan sedang tertutup
+                  </Text>
+                </View>
               ) : (
                 <TouchableOpacity
                   style={[
                     styles.actionButton,
-                    { backgroundColor: colors.tint },
+                    { 
+                      backgroundColor: activity?.is_lock === 1 ? colors.icon || "#6c757d" : colors.tint,
+                      opacity: activity?.is_lock === 1 ? 0.6 : 1
+                    },
                   ]}
                   onPress={handleCreateVisit}
+                  disabled={activity?.is_lock === 1}
                 >
                   <Ionicons
                     name="add-circle-outline"
@@ -1320,6 +1398,34 @@ export default function KunjungDetailScreen() {
 
       {/* Details Modal */}
       {renderVisitDetailsModal()}
+
+      {/* Activity Selector Modal */}
+      <BottomSheetSelector
+        visible={showActivitySelector}
+        title="Pilih Kegiatan"
+        items={activities.map(activity => ({
+          id: activity.id,
+          name: activity.name,
+          subtitle: activity.advisor_clinic_name
+        }))}
+        selectedId={activity?.id}
+        loading={loadingActivities}
+        emptyText="Tidak ada kegiatan tersedia"
+        onSelect={(item) => {
+          const selectedActivity = activities.find(a => a.id === item.id);
+          if (selectedActivity) {
+            handleSelectActivity(selectedActivity);
+          }
+        }}
+        onClose={toggleActivitySelector}
+        renderItem={(item, isSelected) => {
+          const activityData = activities.find(a => a.id === item.id);
+          if (activityData) {
+            return renderCustomActivityItem(activityData, isSelected);
+          }
+          return null;
+        }}
+      />
     </View>
   );
 }
@@ -1577,18 +1683,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 16,
   },
-  activitySelectorContainer: {
-    borderWidth: 0.5,
-    borderRadius: 8,
-    maxHeight: 200,
-    marginBottom: 16,
-  },
-  activityList: {
-    maxHeight: 200,
-  },
-  activityListContent: {
-    paddingVertical: 4,
-  },
+
   activityItem: {
     padding: 12,
     borderBottomWidth: 0.5,
@@ -1602,15 +1697,7 @@ const styles = StyleSheet.create({
   activityDetail: {
     fontSize: 14,
   },
-  activityLoading: {
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  activityEmpty: {
-    padding: 20,
-    textAlign: "center",
-  },
+
   checkOutContainer: {
     marginTop: 12,
   },
@@ -1627,4 +1714,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
   },
+
 });

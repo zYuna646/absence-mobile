@@ -18,12 +18,19 @@ import { useUser } from "@/context/UserContext";
 import { api } from "@/services/api";
 import { useLocalSearchParams, router } from "expo-router";
 import Card from "@/components/ui/Card";
+import BottomSheetSelector from "@/components/ui/BottomSheetSelector";
 
 interface ActivityData {
   id: number;
   name: string;
   indicators?: string;
   advisor_clinic_name?: string;
+  advisor_clinic_id?: number;
+  location?: string;
+  room?: string;
+  is_lock: number;
+  lock_date: string | null;
+  unlock_date: string | null;
 }
 
 interface Score {
@@ -108,6 +115,9 @@ export default function VerifikasiDetailScreen() {
             name: "Kegiatan Praktek 1",
             indicators: "Indikator kegiatan praktek 1",
             advisor_clinic_name: "Dr. Pembimbing 1",
+            is_lock: 0,
+            lock_date: null,
+            unlock_date: null,
           },
         ];
         setActivities(mockActivities);
@@ -124,6 +134,9 @@ export default function VerifikasiDetailScreen() {
           name: "Kegiatan Praktek 1",
           indicators: "Indikator kegiatan praktek 1",
           advisor_clinic_name: "Dr. Pembimbing 1",
+          is_lock: 0,
+          lock_date: null,
+          unlock_date: null,
         },
       ];
       setActivities(mockActivities);
@@ -183,29 +196,74 @@ export default function VerifikasiDetailScreen() {
     setLoading(true);
   };
 
-  // Render activity item
-  const renderActivityItem = ({ item }: { item: ActivityData }) => {
+  // Custom render for activity items
+  const renderCustomActivityItem = (item: ActivityData, isSelected: boolean) => {
+    const isLocked = item.is_lock === 1;
+    
     return (
       <TouchableOpacity
         style={[
           styles.activityItem,
-          selectedActivity?.id === item.id && {
-            backgroundColor: `${colors.tint}20`,
-          },
+          isSelected && { backgroundColor: `${colors.tint}20` }
         ]}
         onPress={() => handleSelectActivity(item)}
       >
-        <Text style={[styles.activityName, { color: colors.text }]}>
-          {item.name}
-        </Text>
+        <View style={styles.activityHeader}>
+          <Text style={[
+            styles.activityName, 
+            { color: colors.text }
+          ]}>
+            {item.name}
+          </Text>
+          <View style={styles.activityStatus}>
+            <Ionicons 
+              name={isLocked ? "lock-closed" : "lock-open"} 
+              size={16} 
+              color={isLocked ? colors.error || "#dc3545" : colors.success || "#28a745"} 
+            />
+            <Text style={{
+              fontSize: 12,
+              fontWeight: "500",
+              color: isLocked ? colors.error || "#dc3545" : colors.success || "#28a745",
+              marginLeft: 4
+            }}>
+              {isLocked ? "Tertutup" : "Terbuka"}
+            </Text>
+          </View>
+        </View>
+        
         {item.advisor_clinic_name && (
-          <Text style={[styles.activityDetail, { color: colors.icon }]}>
+          <Text style={[
+            styles.activityDetail, 
+            { color: colors.text }
+          ]}>
             Pembimbing: {item.advisor_clinic_name}
+          </Text>
+        )}
+        
+        {item.location && (
+          <Text style={[
+            styles.activityDetail, 
+            { color: colors.text }
+          ]}>
+            Lokasi: {item.location}{item.room ? `, Ruang ${item.room}` : ''}
+          </Text>
+        )}
+        
+        {isLocked && (
+          <Text style={[
+            styles.lockedNote,
+            { color: colors.warning || "#ffc107" }
+          ]}>
+            <Ionicons name="information-circle" size={12} color={colors.warning || "#ffc107"} />
+            {" "}Kegiatan sedang tertutup
           </Text>
         )}
       </TouchableOpacity>
     );
   };
+
+
 
   // Navigate to verification detail page
   const handleLogbookPress = (checkInId: number) => {
@@ -295,36 +353,7 @@ export default function VerifikasiDetailScreen() {
             <Ionicons name="chevron-down" size={20} color={colors.icon} />
           </TouchableOpacity>
 
-          {/* Activity selector dropdown */}
-          {showActivitySelector && (
-            <View
-              style={[
-                styles.activitySelectorContainer,
-                { borderColor: colors.inputBorder || "#e0e0e0" },
-              ]}
-            >
-              {loadingActivities ? (
-                <View style={styles.activityLoading}>
-                  <ActivityIndicator size="small" color={colors.tint} />
-                  <Text style={{ color: colors.text, marginTop: 8 }}>
-                    Loading kegiatan...
-                  </Text>
-                </View>
-              ) : activities.length === 0 ? (
-                <Text style={[styles.activityEmpty, { color: colors.icon }]}>
-                  Tidak ada kegiatan tersedia
-                </Text>
-              ) : (
-                <FlatList
-                  data={activities}
-                  renderItem={renderActivityItem}
-                  keyExtractor={(item) => item.id.toString()}
-                  style={styles.activityList}
-                  contentContainerStyle={styles.activityListContent}
-                />
-              )}
-            </View>
-          )}
+
         </Card>
 
         {!selectedActivity ? (
@@ -425,6 +454,34 @@ export default function VerifikasiDetailScreen() {
           ))
         )}
       </ScrollView>
+
+      {/* Activity Selector Modal */}
+      <BottomSheetSelector
+        visible={showActivitySelector}
+        title="Pilih Kegiatan"
+        items={activities.map(activity => ({
+          id: activity.id,
+          name: activity.name,
+          subtitle: activity.advisor_clinic_name
+        }))}
+        selectedId={selectedActivity?.id}
+        loading={loadingActivities}
+        emptyText="Tidak ada kegiatan tersedia"
+        onSelect={(item) => {
+          const selectedActivity = activities.find(a => a.id === item.id);
+          if (selectedActivity) {
+            handleSelectActivity(selectedActivity);
+          }
+        }}
+        onClose={toggleActivitySelector}
+        renderItem={(item, isSelected) => {
+          const activityData = activities.find(a => a.id === item.id);
+          if (activityData) {
+            return renderCustomActivityItem(activityData, isSelected);
+          }
+          return null;
+        }}
+      />
     </View>
   );
 }
@@ -576,22 +633,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 16,
   },
-  activitySelectorContainer: {
-    borderWidth: 0.5,
-    borderRadius: 8,
-    maxHeight: 200,
-    marginBottom: 16,
-  },
-  activityList: {
-    maxHeight: 200,
-  },
-  activityListContent: {
-    paddingVertical: 4,
-  },
+
   activityItem: {
     padding: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#e0e0e0",
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   activityName: {
     fontSize: 16,
@@ -601,13 +647,21 @@ const styles = StyleSheet.create({
   activityDetail: {
     fontSize: 14,
   },
-  activityLoading: {
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
+
+  // Activity item styles
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  activityEmpty: {
-    padding: 20,
-    textAlign: "center",
+  activityStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  lockedNote: {
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });

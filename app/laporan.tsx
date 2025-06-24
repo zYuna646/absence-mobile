@@ -248,24 +248,7 @@ export default function LaporanScreen() {
     });
   };
 
-  // Handle lock activity button press
-  const handleLockActivity = () => {
-    Alert.alert(
-      "Kunci Kegiatan",
-      "Setelah mengunci kegiatan, Anda tidak dapat menambah logbook baru. Lanjutkan?",
-      [
-        { text: "Batal", style: "cancel" },
-        { 
-          text: "Kunci", 
-          style: "destructive",
-          onPress: () => {
-            // TODO: Call API to lock the activity
-            console.log("Lock activity:", activityId);
-          },
-        },
-      ]
-    );
-  };
+
 
   // Format date string
   const formatDate = (dateString: string): string => {
@@ -596,18 +579,81 @@ export default function LaporanScreen() {
               Pembimbing: {activity?.advisor_clinic_name || "Unknown"}
             </Text>
           </View>
+
+          {/* Activity Status */}
+          {activity && (
+            <View style={styles.activityStatusContainer}>
+              <Ionicons 
+                name={activity.is_lock === 0 ? "lock-open" : "lock-closed"} 
+                size={16} 
+                color={activity.is_lock === 0 ? colors.success || "#28a745" : colors.error || "#dc3545"} 
+              />
+              <Text style={[
+                styles.activityStatusText,
+                { 
+                  color: activity.is_lock === 0 ? colors.success || "#28a745" : colors.error || "#dc3545",
+                  marginLeft: 8 
+                }
+              ]}>
+                {activity.is_lock === 0 ? "Kegiatan terbuka" : "Kegiatan tertutup"}
+              </Text>
+            </View>
+          )}
           
-          <View style={styles.actionButtonsContainer}>
+          {hasCheckInToday ? (
+            <View style={styles.disabledButtonContainer}>
+              <View
+                style={[
+                  styles.createLogbookButton, 
+                  { 
+                    backgroundColor: colors.icon || "#6c757d",
+                    opacity: 0.6,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color="white"
+                  style={styles.actionIcon}
+                />
+                <Text style={styles.actionButtonText}>Sudah Check-in Hari Ini</Text>
+              </View>
+            </View>
+          ) : activity?.is_lock === 1 ? (
+            <View style={styles.disabledButtonContainer}>
+              <View
+                style={[
+                  styles.createLogbookButton, 
+                  { 
+                    backgroundColor: colors.icon || "#6c757d",
+                    opacity: 0.6,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={18}
+                  color="white"
+                  style={styles.actionIcon}
+                />
+                <Text style={styles.actionButtonText}>Buat Logbook Tidak Tersedia</Text>
+              </View>
+              <Text style={[
+                styles.disabledButtonNote,
+                { color: colors.error || "#dc3545" }
+              ]}>
+                <Ionicons name="information-circle" size={14} color={colors.error || "#dc3545"} />
+                {" "}Kegiatan sedang tertutup
+              </Text>
+            </View>
+          ) : (
             <TouchableOpacity 
               style={[
-                styles.actionButton, 
-                { 
-                  backgroundColor: colors.tint,
-                  opacity: hasCheckInToday ? 0.5 : 1,
-                },
+                styles.createLogbookButton, 
+                { backgroundColor: colors.tint },
               ]}
               onPress={handleCreateLogbook}
-              disabled={hasCheckInToday}
             >
               <Ionicons
                 name="book-outline"
@@ -617,23 +663,7 @@ export default function LaporanScreen() {
               />
               <Text style={styles.actionButtonText}>Buat Logbook</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.actionButton,
-                { backgroundColor: colors.warning || "#ffc107" },
-              ]}
-              onPress={handleLockActivity}
-            >
-              <Ionicons
-                name="lock-closed-outline"
-                size={18}
-                color="white"
-                style={styles.actionIcon}
-              />
-              <Text style={styles.actionButtonText}>Kunci Kegiatan</Text>
-            </TouchableOpacity>
-          </View>
+          )}
         </Card>
         
         {/* Logbook History Section */}
@@ -748,19 +778,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 8,
   },
-  actionButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  actionButton: {
+  createLogbookButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
-    flex: 0.48,
+    marginTop: 8,
   },
   actionIcon: {
     marginRight: 6,
@@ -918,5 +943,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 12,
+  },
+  // Activity status styles
+  activityStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  activityStatusText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  disabledButtonContainer: {
+    alignItems: 'center',
+  },
+  disabledButtonNote: {
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
