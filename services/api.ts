@@ -169,16 +169,16 @@ export interface AttendanceData {
   check_out: string | null;
 }
 
-interface AttendanceListItem {
+export interface AttendanceListItem {
   check_in_id: number;
   check_in_date: string;
   check_in_time: string;
   check_out_date: string | null;
   check_out_time: string | null;
-  status: 'complete' | 'incomplete';
+  status: "complete" | "incomplete";
 }
 
-interface AttendanceDetail {
+export interface AttendanceDetail {
   advisor: {
     id: number;
     name: string;
@@ -196,7 +196,15 @@ interface AttendanceDetail {
     check_time: string;
     date: string;
   };
-  check_out: string | null;
+  check_out: {
+    id: number;
+    address: string;
+    latitude: string;
+    longitude: string;
+    photo: string;
+    description: string | null;
+    check_time: string;
+  } | null;
 }
 
 // Error handling for fetch
@@ -795,16 +803,18 @@ export const api = {
       };
     }
   },
-  
+
   async getVisitsByActivity(
     token: string,
     activityId: number,
     studentId: number
-  ): Promise<ApiResponse<{
-    activity: { id: string; name: string };
-    student: { id: string; name: string; nim: string };
-    visits: any;
-  }>> {
+  ): Promise<
+    ApiResponse<{
+      activity: { id: string; name: string };
+      student: { id: string; name: string; nim: string };
+      visits: any;
+    }>
+  > {
     try {
       const url = `${API_URL}${ENDPOINTS.VISITS}/activities/${activityId}/${studentId}`;
       const options = createRequestOptions("GET", undefined, token);
@@ -842,10 +852,11 @@ export const api = {
   // Get logbook data for a student
   async getLogbook(
     token: string,
-    studentId: number
+    studentId: number,
+    activityId: number
   ): Promise<ApiResponse<any>> {
     try {
-      const url = `${API_URL}${ENDPOINTS.LOGBOOKS}/${studentId}`;
+      const url = `${API_URL}${ENDPOINTS.LOGBOOKS}/${activityId}/${studentId}`;
       const options = createRequestOptions("GET", undefined, token);
       return fetchWithTimeout<any>(url, options);
     } catch (error) {
@@ -876,7 +887,9 @@ export const api = {
     }
   },
 
-  async getAttendances(token: string): Promise<ApiResponse<AttendanceListItem[]>> {
+  async getAttendances(
+    token: string
+  ): Promise<ApiResponse<AttendanceListItem[]>> {
     try {
       const url = `${API_URL}${ENDPOINTS.ATTENDANCES}`;
       const options = createRequestOptions("GET", undefined, token);
@@ -890,7 +903,10 @@ export const api = {
     }
   },
 
-  async getAttendanceDetail(token: string, checkInId: number): Promise<ApiResponse<AttendanceDetail>> {
+  async getAttendanceDetail(
+    token: string,
+    checkInId: number
+  ): Promise<ApiResponse<AttendanceDetail>> {
     try {
       const url = `${API_URL}${ENDPOINTS.ATTENDANCES}/${checkInId}`;
       const options = createRequestOptions("GET", undefined, token);
@@ -951,9 +967,78 @@ export const api = {
       console.log(response);
       const data = await response.json();
       return data;
-
     } catch (error) {
       console.error("Error in checkOutAttendance:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Notification endpoints
+  async registerDeviceForNotifications(
+    token: string,
+    pushToken: string,
+    userId: string,
+    platform: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/device/register`;
+      const options = createRequestOptions(
+        "POST",
+        {
+          push_token: pushToken,
+          user_id: userId,
+          platform: platform,
+        },
+        token
+      );
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in registerDeviceForNotifications:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async sendNotification(
+    token: string,
+    data: {
+      title: string;
+      message: string;
+      user_id?: string;
+      push_token?: string;
+      data?: any;
+    }
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/notifications/send`;
+      const options = createRequestOptions("POST", data, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in sendNotification:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getNotificationHistory(
+    token: string,
+    userId?: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/notifications/history${
+        userId ? `?user_id=${userId}` : ""
+      }`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in getNotificationHistory:", error);
       return {
         success: false,
         message: error instanceof Error ? error.message : "Unknown error",

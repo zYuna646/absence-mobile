@@ -26,6 +26,7 @@ import Card from "@/components/ui/Card";
 interface Student {
   id: number;
   name: string;
+  student_id: string;
   group_name: string;
 }
 
@@ -110,6 +111,7 @@ export default function KunjunganScreen() {
       const filtered = students.filter(
         (student) =>
           student.name.toLowerCase().includes(lowercaseQuery) ||
+          student.student_id.toLowerCase().includes(lowercaseQuery) ||
           student.group_name.toLowerCase().includes(lowercaseQuery)
       );
       setFilteredStudents(filtered);
@@ -166,6 +168,9 @@ export default function KunjunganScreen() {
         <View style={styles.studentInfo}>
           <Text style={[styles.studentName, { color: colors.text }]}>
             {student.name}
+          </Text>
+          <Text style={[styles.studentNim, { color: colors.icon }]}>
+            {student.student_id}
           </Text>
           <Text style={[styles.studentGroup, { color: colors.icon }]}>
             {student.group_name}
@@ -350,6 +355,13 @@ export default function KunjunganScreen() {
                   </Text>
 
                   <Text style={[styles.modalLabel, { color: colors.text }]}>
+                    NIM:
+                  </Text>
+                  <Text style={[styles.modalValue, { color: colors.text }]}>
+                    {selectedStudent.student_id}
+                  </Text>
+
+                  <Text style={[styles.modalLabel, { color: colors.text }]}>
                     Kelompok:
                   </Text>
                   <Text style={[styles.modalValue, { color: colors.text }]}>
@@ -486,6 +498,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     marginBottom: 4,
+  },
+  studentNim: {
+    fontSize: 14,
+    marginBottom: 2,
   },
   studentGroup: {
     fontSize: 14,

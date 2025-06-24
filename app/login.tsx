@@ -62,7 +62,8 @@ export default function LoginScreen() {
       const success = await login(username, password);
 
       if (success) {
-        // Login successful, the useEffect hook will handle navigation
+        // Login successful, device token registration will be handled by UserContext
+        // Navigation will be handled by useEffect hook
       } else {
         // API login failed with error, already handled by the context
       }

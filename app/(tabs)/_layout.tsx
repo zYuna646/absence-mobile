@@ -160,6 +160,22 @@ export default function TabLayout() {
             ),
           }}
         />
+
+         <Tabs.Screen
+            name="absensi"
+            options={{
+              title: "Absensi",
+              href: null,
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons
+                  name="calendar-clock"
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
+        
       </Tabs>
     );
   } else if (role === "advisor") {

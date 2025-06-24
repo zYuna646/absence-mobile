@@ -1,7 +1,9 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { Platform } from 'react-native';
 import { api, LoginResponseData, UserSessionData } from '@/services/api';
+import { NotificationService } from '@/services/notificationService';
 
 // Define user roles
 export type UserRole = 'student' | 'advisor';
@@ -190,6 +192,34 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             STORAGE_KEYS.USER_INFO, 
             JSON.stringify(sessionResponse.data)
           );
+          
+          // Register device token for push notifications
+          try {
+            const pushToken = NotificationService.getPushToken();
+            console.log('pushToken', pushToken);
+            
+            if (pushToken && sessionResponse.data) {
+              console.log({
+                token,
+                pushToken,
+                userId: sessionResponse.data.id.toString(),
+                platform: Platform.OS === "android" ? "android" : "ios"
+              });
+              
+              await api.registerDeviceForNotifications(
+                token,
+                pushToken,
+                sessionResponse.data.id.toString(),
+                Platform.OS === "android" ? "android" : "ios"
+              );
+              console.log("Device token registered successfully after login");
+            } else {
+              console.log("Push token not available, skipping device registration");
+            }
+          } catch (deviceError) {
+            console.error("Failed to register device token:", deviceError);
+            // Don't block login flow if device registration fails
+          }
           
           return true;
         } else {

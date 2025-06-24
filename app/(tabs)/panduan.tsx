@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Linking, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/constants/Colors';
@@ -11,16 +11,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api, FileData } from '@/services/api';
 import { useUser } from '@/context/UserContext';
+import { useNotification } from '@/context/NotificationContext';
 
 export default function PanduanScreen() {
   const colorScheme = useColorScheme();
   const colors = useThemeColor();
   const { token } = useUser();
+  const { showNotification } = useNotification();
   const [files, setFiles] = useState<FileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState<number | null>(null);
+    const [downloading, setDownloading] = useState<number | null>(null);
   
   // Fetch guide files from API
   const fetchFiles = async () => {
@@ -69,39 +71,85 @@ export default function PanduanScreen() {
       // Get download URL from API
       const downloadUrl = api.getFileDownloadUrl(id);
       
-      // Create local file path
+      // Create local file path with proper extension and sanitized name
       const fileExt = fileName.split('.').pop() || 'pdf';
-      const localUri = FileSystem.documentDirectory + fileName;
+      const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const localUri = FileSystem.documentDirectory + sanitizedFileName;
       
-      // Download file
-      const downloadResumable = FileSystem.createDownloadResumable(
-        downloadUrl,
-        localUri,
-        {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        }
-      );
+      // Make POST request to download file
+      console.log(downloadUrl);
       
-      const result = await downloadResumable.downloadAsync();
-      
-      if (result && result.uri) {
-        // Check if sharing is available
-        const isSharingAvailable = await Sharing.isAvailableAsync();
-        
-        if (isSharingAvailable) {
-          await Sharing.shareAsync(result.uri);
-        } else {
-          // Open the file directly if sharing is not available
-          await Linking.openURL(result.uri);
-        }
-      } else {
-        throw new Error('Download failed');
-      }
-    } catch (err) {
-      console.error('Error downloading file:', err);
-      alert('Failed to download file. Please try again later.');
-    } finally {
-      setDownloading(null);
+      const response = await fetch(downloadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        },
+      });
+
+             if (response.ok) {
+         // Get the response as array buffer for proper binary handling
+         const arrayBuffer = await response.arrayBuffer();
+         
+         // Convert array buffer to base64
+         const bytes = new Uint8Array(arrayBuffer);
+         let binary = '';
+         for (let i = 0; i < bytes.byteLength; i++) {
+           binary += String.fromCharCode(bytes[i]);
+         }
+         const base64 = btoa(binary);
+         
+                  // Write file to local storage
+         await FileSystem.writeAsStringAsync(localUri, base64, {
+           encoding: FileSystem.EncodingType.Base64,
+         });
+         
+         // Show notification with file location
+         await showNotification({
+           title: 'Download Selesai',
+           message: `File "${fileName}" berhasil diunduh. Tap untuk buka lokasi file.`,
+           data: { 
+             type: 'file_download',
+             filePath: localUri 
+           },
+         });
+       } else {
+         throw new Error(`Download failed with status: ${response.status}`);
+       }
+     } catch (err) {
+       console.error('Error downloading file:', err);
+       alert('Failed to download file. Please try again later.');
+     } finally {
+       setDownloading(null);
+     }
+  };
+
+  // Get MIME type based on file extension
+  const getMimeType = (extension: string): string => {
+    switch (extension.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'xls':
+        return 'application/vnd.ms-excel';
+      case 'xlsx':
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      case 'ppt':
+        return 'application/vnd.ms-powerpoint';
+      case 'pptx':
+        return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      case 'txt':
+        return 'text/plain';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'application/octet-stream';
     }
   };
   

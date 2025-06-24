@@ -16,39 +16,9 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/constants/Colors';
 import { useUser } from '@/context/UserContext';
-import { api } from '@/services/api';
+import { api, AttendanceListItem, AttendanceDetail } from '@/services/api';
 import Card from '@/components/ui/Card';
 import { router } from 'expo-router';
-
-interface AttendanceListItem {
-  check_in_id: number;
-  check_in_date: string;
-  check_in_time: string;
-  check_out_date: string | null;
-  check_out_time: string | null;
-  status: 'complete' | 'incomplete';
-}
-
-interface AttendanceDetail {
-  advisor: {
-    id: number;
-    name: string;
-  };
-  activity: {
-    id: number;
-    name: string;
-  };
-  check_in: {
-    id: number;
-    address: string;
-    latitude: string;
-    longitude: string;
-    photo: string;
-    check_time: string;
-    date: string;
-  };
-  check_out: string | null;
-}
 
 export default function AbsensiScreen() {
   const colors = useThemeColor();
@@ -219,13 +189,37 @@ export default function AbsensiScreen() {
                 </Text>
               </View>
 
+              {selectedAttendance.check_out && (
+                <View style={styles.detailSection}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    Waktu Check-out
+                  </Text>
+                  <Text style={[styles.sectionContent, { color: colors.text }]}>
+                    {formatTime(selectedAttendance.check_out.check_time)}
+                  </Text>
+                </View>
+              )}
+
               {selectedAttendance.check_in.photo && (
                 <View style={styles.detailSection}>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                    Foto
+                    Foto Check-in
                   </Text>
                   <Image
                     source={{ uri: selectedAttendance.check_in.photo }}
+                    style={styles.detailPhoto}
+                    resizeMode="cover"
+                  />
+                </View>
+              )}
+
+              {selectedAttendance.check_out?.photo && (
+                <View style={styles.detailSection}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    Foto Check-out
+                  </Text>
+                  <Image
+                    source={{ uri: selectedAttendance.check_out.photo }}
                     style={styles.detailPhoto}
                     resizeMode="cover"
                   />
@@ -303,86 +297,58 @@ export default function AbsensiScreen() {
               <TouchableOpacity
                 key={attendance.check_in_id}
                 onPress={() => loadAttendanceDetails(attendance.check_in_id)}
-                style={styles.cardContainer}
+                style={styles.attendanceItem}
+                activeOpacity={0.7}
               >
-                <Card title=" ">
-                  <View style={styles.attendanceContent}>
-                    {/* Left side: Status indicator */}
-                    <View style={[
-                      styles.statusIndicator,
-                      { backgroundColor: attendance.status === 'complete' ? colors.success : colors.warning }
-                    ]} />
-
-                    {/* Middle: Main content */}
-                    <View style={styles.mainContent}>
-                      <View style={styles.dateRow}>
-                        <Text style={[styles.dateText, { color: colors.text }]}>
-                          {formatDate(attendance.check_in_date)}
-                        </Text>
-                        <View
-                          style={[
-                            styles.statusBadge,
-                            {
-                              backgroundColor: attendance.status === 'complete'
-                                ? colors.success
-                                : colors.warning,
-                            },
-                          ]}
-                        >
-                          <Text style={styles.statusText}>
-                            {attendance.status === 'complete' ? 'Selesai' : 'Check-in'}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.timeContainer}>
-                        <View style={styles.timeInfo}>
-                          <View style={styles.timeRow}>
-                            <Ionicons name="time-outline" size={16} color={colors.icon} style={styles.timeIcon} />
-                            <Text style={[styles.timeLabel, { color: colors.icon }]}>
-                              Check-in
-                            </Text>
-                          </View>
-                          <Text style={[styles.timeValue, { color: colors.text }]}>
-                            {formatTime(attendance.check_in_time)}
-                          </Text>
-                        </View>
-                        {attendance.check_out_time && (
-                          <View style={styles.timeInfo}>
-                            <View style={styles.timeRow}>
-                              <Ionicons name="time-outline" size={16} color={colors.icon} style={styles.timeIcon} />
-                              <Text style={[styles.timeLabel, { color: colors.icon }]}>
-                                Check-out
-                              </Text>
-                            </View>
-                            <Text style={[styles.timeValue, { color: colors.text }]}>
-                              {formatTime(attendance.check_out_time)}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      {isIncompleteToday && (
-                        <TouchableOpacity
-                          style={[styles.checkoutButton, { backgroundColor: colors.tint }]}
-                          onPress={() => handleCheckOut(attendance.check_in_id)}
-                        >
-                          <Ionicons name="log-out-outline" size={18} color="white" />
-                          <Text style={styles.checkoutButtonText}>Check-out</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-
-                    {/* Right side: Arrow indicator */}
-                    <View style={styles.arrowContainer}>
-                      <Ionicons 
-                        name="chevron-forward" 
-                        size={20} 
-                        color={colors.icon} 
-                      />
-                    </View>
+                <View style={styles.attendanceHeader}>
+                  <Text style={[styles.attendanceDate, { color: colors.text }]}>
+                    {formatDate(attendance.check_in_date)}
+                  </Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor: attendance.status === 'complete'
+                          ? colors.success
+                          : colors.warning,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.statusText}>
+                      {attendance.status === 'complete' ? 'Selesai' : 'Check-in'}
+                    </Text>
                   </View>
-                </Card>
+                </View>
+                
+                <View style={styles.attendanceTimeContainer}>
+                  <View style={styles.timeSection}>
+                    <Text style={[styles.timeSectionLabel, { color: colors.text }]}>
+                      Check-in:
+                    </Text>
+                    <Text style={[styles.timeValue, { color: colors.text }]}>
+                      {formatTime(attendance.check_in_time)}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.timeSection}>
+                    <Text style={[styles.timeSectionLabel, { color: colors.text }]}>
+                      Check-out:
+                    </Text>
+                    <Text style={[styles.timeValue, { color: colors.text }]}>
+                      {attendance.check_out_time ? formatTime(attendance.check_out_time) : "-"}
+                    </Text>
+                  </View>
+                </View>
+
+                {isIncompleteToday && (
+                  <TouchableOpacity
+                    style={[styles.checkoutButton, { backgroundColor: colors.tint }]}
+                    onPress={() => handleCheckOut(attendance.check_in_id)}
+                  >
+                    <Ionicons name="log-out-outline" size={18} color="white" />
+                    <Text style={styles.checkoutButtonText}>Check-out</Text>
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
             );
           })
@@ -422,39 +388,36 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  cardContainer: {
+  attendanceItem: {
+    backgroundColor: "#ffffff10",
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 0.5,
+    borderColor: "#00000020",
+  },
+  attendanceHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
-  attendanceContent: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
+  attendanceDate: {
+    fontSize: 14,
+    fontWeight: "500",
   },
-  statusIndicator: {
-    width: 4,
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+  attendanceTimeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
   },
-  mainContent: {
-    flex: 1,
-    padding: 12,
+  timeSection: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  dateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  timeIcon: {
+  timeSectionLabel: {
+    fontSize: 14,
     marginRight: 4,
-  },
-  arrowContainer: {
-    justifyContent: 'center',
-    paddingRight: 12,
   },
   checkoutButton: {
     flexDirection: 'row',
@@ -509,33 +472,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-  dateText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
   statusBadge: {
-    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    borderRadius: 4,
   },
   statusText: {
     color: 'white',
     fontSize: 12,
     fontWeight: '500',
   },
-  timeContainer: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  timeInfo: {
-    marginRight: 24,
-  },
-  timeLabel: {
-    fontSize: 12,
-  },
   timeValue: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,

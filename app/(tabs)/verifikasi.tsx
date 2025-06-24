@@ -26,7 +26,7 @@ import Card from "@/components/ui/Card";
 interface Student {
   id: number;
   name: string;
-  nim: string;
+  student_id: string;
   group_name: string;
 }
 
@@ -186,7 +186,7 @@ export default function VerifikasiScreen() {
       const filtered = students.filter(
         (student) =>
           student.name.toLowerCase().includes(lowercaseQuery) ||
-          student.nim.toLowerCase().includes(lowercaseQuery) ||
+          student.student_id.toLowerCase().includes(lowercaseQuery) ||
           (student.group_name && student.group_name.toLowerCase().includes(lowercaseQuery))
       );
       setFilteredStudents(filtered);
@@ -290,7 +290,7 @@ export default function VerifikasiScreen() {
             {student.name}
           </Text>
           <Text style={[styles.studentNim, { color: colors.icon }]}>
-            {student.nim}
+            {student.student_id}
           </Text>
           {student.group_name && (
             <Text style={[styles.studentGroup, { color: colors.icon }]}>
@@ -521,7 +521,7 @@ export default function VerifikasiScreen() {
                     NIM:
                   </Text>
                   <Text style={[styles.modalValue, { color: colors.text }]}>
-                    {selectedStudent.nim}
+                    {selectedStudent.student_id}
                   </Text>
 
                   {selectedStudent.group_name && (
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   header: {
-    marginTop: 60,
+    marginTop: 20,
     marginBottom: 24,
     paddingHorizontal: 20,
   },
