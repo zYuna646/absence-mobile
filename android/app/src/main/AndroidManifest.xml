@@ -28,9 +28,9 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="myapp"/>
-        <data android:scheme="com.zychan.absencemobile"/>
-        <data android:scheme="exp+absence-mobile"/>
+        <data android:scheme="makuta"/>
+        <data android:scheme="com.zychan.makuta"/>
+        <data android:scheme="exp+makuta"/>
       </intent-filter>
     </activity>
   </application>

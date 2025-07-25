@@ -1,4 +1,4 @@
-package com.zychan.absencemobile
+package com.zychan.makuta
 
 import android.app.Application
 import android.content.res.Configuration

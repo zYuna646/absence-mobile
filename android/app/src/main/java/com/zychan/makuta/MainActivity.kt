@@ -1,4 +1,4 @@
-package com.zychan.absencemobile
+package com.zychan.makuta
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
