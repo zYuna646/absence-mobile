@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  Animated,
 } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -19,12 +20,33 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { useUser } from "@/context/UserContext";
 import {
   api,
-  StudentProfileUpdateData,
   AdvisorProfileUpdateData,
   StaseData,
+  GroupData,
 } from "@/services/api";
 import PrimaryButton from "@/components/PrimaryButton";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import Card from "@/components/ui/Card";
+
+// Define local interface for student form
+interface StudentForm {
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  birthday: string;
+  gender: string;
+  student_id: string;
+  group_id: number;
+  stase_id: number;
+}
+
+// Add password form interface
+interface PasswordForm {
+  current_password: string;
+  new_password: string;
+  new_password_confirmation: string;
+}
 
 export default function ProfileScreen() {
   const colors = useThemeColor();
@@ -32,7 +54,7 @@ export default function ProfileScreen() {
   const { role, userInfo, token, setUserInfo } = useUser();
 
   // Student form state
-  const [studentForm, setStudentForm] = useState<StudentProfileUpdateData>({
+  const [studentForm, setStudentForm] = useState<StudentForm>({
     name: "",
     username: "",
     email: "",
@@ -40,6 +62,8 @@ export default function ProfileScreen() {
     birthday: "",
     gender: "",
     student_id: "",
+    group_id: 0,
+    stase_id: 0
   });
 
   // Advisor form state
@@ -58,12 +82,49 @@ export default function ProfileScreen() {
     room: "",
   });
 
+  // Add password form state
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>({
+    current_password: "",
+    new_password: "",
+    new_password_confirmation: "",
+  });
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
   // UI states
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [stases, setStases] = useState<StaseData[]>([]);
   const [loadingStases, setLoadingStases] = useState(false);
+
+  // Add new state for groups
+  const [groups, setGroups] = useState<GroupData[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+
+  // Add animation values
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(30));
+
+  // Add animation on component mount
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Load user data into form
   useEffect(() => {
@@ -77,7 +138,18 @@ export default function ProfileScreen() {
           birthday: userInfo.birthday || "",
           gender: userInfo.gender || "",
           student_id: userInfo.student_id || "",
+          group_id: userInfo.group_id || 0,
+          stase_id: userInfo.stase_id || 0
         });
+
+        // Load stases
+        if (token) {
+          loadStases();
+          // If stase_id exists, load groups
+          if (userInfo.stase_id) {
+            loadGroups(userInfo.stase_id);
+          }
+        }
       } else if (role === "advisor") {
         setAdvisorForm({
           name: userInfo.name || "",
@@ -124,11 +196,46 @@ export default function ProfileScreen() {
     }
   };
 
-  // Handle input change for student form
-  const handleStudentInputChange = (field: keyof StudentProfileUpdateData, value: string) => {
-    setStudentForm((prev) => ({
+  // Load groups based on selected stase
+  const loadGroups = async (staseId: number) => {
+    if (!token) return;
+
+    try {
+      setLoadingGroups(true);
+      const response = await api.getGroupsByStase(staseId);
+      
+      if (response.success && response.data) {
+        setGroups(response.data);
+      } else {
+        console.error("Failed to load groups:", response.message);
+      }
+    } catch (error) {
+      console.error("Error loading groups:", error);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  // Handle stase selection
+  const handleStaseSelect = async (staseId: number) => {
+    setStudentForm(prev => ({
       ...prev,
-      [field]: value,
+      stase_id: staseId,
+      group_id: 0 // Reset group selection when stase changes
+    }));
+    
+    if (staseId) {
+      await loadGroups(staseId);
+    } else {
+      setGroups([]);
+    }
+  };
+
+  // Update handleStudentInputChange function
+  const handleStudentInputChange = (field: keyof StudentForm, value: string | number) => {
+    setStudentForm(prev => ({
+      ...prev,
+      [field]: value
     }));
   };
 
@@ -137,6 +244,22 @@ export default function ProfileScreen() {
     setAdvisorForm((prev) => ({
       ...prev,
       [field]: field === "stase_id" ? parseInt(value) || 0 : value,
+    }));
+  };
+
+  // Handle password form change
+  const handlePasswordChange = (field: keyof PasswordForm, value: string) => {
+    setPasswordForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle password visibility toggle
+  const togglePasswordVisibility = (field: keyof typeof showPassword) => {
+    setShowPassword(prev => ({
+      ...prev,
+      [field]: !prev[field]
     }));
   };
 
@@ -202,23 +325,46 @@ export default function ProfileScreen() {
 
     // Validate inputs
     if (!studentForm.name || !studentForm.email || !studentForm.phone) {
-      Alert.alert("Validation Error", "Please fill in all required fields");
+      Alert.alert("Validation Error", "Mohon lengkapi semua field yang diperlukan");
+      return;
+    }
+
+    if (!studentForm.stase_id) {
+      Alert.alert("Validation Error", "Mohon pilih stase");
+      return;
+    }
+
+    if (!studentForm.group_id) {
+      Alert.alert("Validation Error", "Mohon pilih kelompok");
       return;
     }
 
     try {
       setSaving(true);
-      const response = await api.updateStudentProfile(token, studentForm);
+
+      // Prepare data for API
+      const apiData = {
+        name: studentForm.name.trim(),
+        username: studentForm.username.trim(),
+        email: studentForm.email.trim(),
+        phone: studentForm.phone.trim(),
+        birthday: studentForm.birthday,
+        gender: studentForm.gender,
+        group_id: studentForm.group_id,
+        student_id: studentForm.student_id.trim()
+      };
+
+      const response = await api.updateStudentProfile(token, apiData);
       
       if (response.success && response.data) {
-        Alert.alert("Success", "Profile updated successfully");
+        Alert.alert("Sukses", "Profil berhasil diperbarui");
         setUserInfo(response.data);
       } else {
-        Alert.alert("Error", response.message || "Failed to update profile");
+        Alert.alert("Error", response.message || "Gagal memperbarui profil");
       }
     } catch (error) {
       console.error("Error updating student profile:", error);
-      Alert.alert("Error", "An error occurred while updating your profile");
+      Alert.alert("Error", "Terjadi kesalahan saat memperbarui profil");
     } finally {
       setSaving(false);
     }
@@ -262,160 +408,346 @@ export default function ProfileScreen() {
     }
   };
 
+  // Handle password update
+  const handleUpdatePassword = async () => {
+    // Validate password
+    if (!passwordForm.current_password) {
+      Alert.alert("Error", "Password saat ini wajib diisi");
+      return;
+    }
+    if (!passwordForm.new_password) {
+      Alert.alert("Error", "Password baru wajib diisi");
+      return;
+    }
+    if (!passwordForm.new_password_confirmation) {
+      Alert.alert("Error", "Konfirmasi password wajib diisi");
+      return;
+    }
+    if (passwordForm.new_password !== passwordForm.new_password_confirmation) {
+      Alert.alert("Error", "Password baru dan konfirmasi tidak cocok");
+      return;
+    }
+
+    // Check password complexity
+    const passwordValidation = {
+      minLength: passwordForm.new_password.length >= 8,
+      hasLower: /[a-z]/.test(passwordForm.new_password),
+      hasUpper: /[A-Z]/.test(passwordForm.new_password),
+      hasNumber: /[0-9]/.test(passwordForm.new_password),
+      hasSpecial: /[@$!%*?&]/.test(passwordForm.new_password)
+    };
+
+    if (!passwordValidation.minLength) {
+      Alert.alert("Error", "Password minimal 8 karakter");
+      return;
+    }
+    if (!passwordValidation.hasLower) {
+      Alert.alert("Error", "Password harus mengandung huruf kecil");
+      return;
+    }
+    if (!passwordValidation.hasUpper) {
+      Alert.alert("Error", "Password harus mengandung huruf besar");
+      return;
+    }
+    if (!passwordValidation.hasNumber) {
+      Alert.alert("Error", "Password harus mengandung angka");
+      return;
+    }
+    if (!passwordValidation.hasSpecial) {
+      Alert.alert("Error", "Password harus mengandung karakter spesial (@$!%*?&)");
+      return;
+    }
+
+    try {
+      setUpdatingPassword(true);
+      const response = await api.updatePassword(token!, passwordForm);
+
+      if (response.success) {
+        Alert.alert("Sukses", "Password berhasil diperbarui");
+        // Reset form
+        setPasswordForm({
+          current_password: "",
+          new_password: "",
+          new_password_confirmation: "",
+        });
+      } else {
+        Alert.alert("Error", response.message || "Gagal memperbarui password");
+      }
+    } catch (error) {
+      console.error("Error updating password:", error);
+      Alert.alert("Error", "Terjadi kesalahan saat memperbarui password");
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
   // Change advisor type
   const handleTypeChange = (type: string) => {
     handleAdvisorInputChange("type", type);
   };
 
-  // Render student profile form
+  // Enhanced student form render
   const renderStudentForm = () => {
     return (
-      <View style={styles.formContainer}>
-        <Text style={[styles.formTitle, { color: colors.text }]}>
-          Student Profile
-        </Text>
-
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Name</Text>
-          <TextInput
-            style={[
-              styles.input,
-              { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
-            ]}
-            placeholder="Enter your name"
-            placeholderTextColor={colors.icon}
-            value={studentForm.name}
-            onChangeText={(text) => handleStudentInputChange("name", text)}
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Username</Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.inputBackground,
-                color: colors.text,
-                borderColor: colors.inputBorder,
-                opacity: 0.7,
-              }
-            ]}
-            placeholder="Username"
-            placeholderTextColor={colors.icon}
-            value={studentForm.username}
-            editable={false}
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Email</Text>
-          <TextInput
-            style={[
-              styles.input,
-              { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
-            ]}
-            placeholder="Enter your email"
-            placeholderTextColor={colors.icon}
-            value={studentForm.email}
-            onChangeText={(text) => handleStudentInputChange("email", text)}
-            keyboardType="email-address"
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Phone</Text>
-          <TextInput
-            style={[
-              styles.input,
-              { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
-            ]}
-            placeholder="Enter your phone number"
-            placeholderTextColor={colors.icon}
-            value={studentForm.phone}
-            onChangeText={(text) => handleStudentInputChange("phone", text)}
-            keyboardType="phone-pad"
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Birthday</Text>
-          <TouchableOpacity
-            style={[
-              styles.input,
-              styles.dateSelector,
-              { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }
-            ]}
-            onPress={toggleDatePicker}
-          >
-            <Text style={{ color: studentForm.birthday ? colors.text : colors.icon }}>
-              {studentForm.birthday ? formatDisplayDate(studentForm.birthday) : "Select your birthday"}
-            </Text>
-            <Ionicons name="calendar-outline" size={20} color={colors.icon} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Gender</Text>
-          <View style={styles.radioGroup}>
-            <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => handleStudentInputChange("gender", "Laki-laki")}
-            >
-              <View
-                style={[
-                  styles.radioCircle,
-                  studentForm.gender === "Laki-laki" && { borderColor: colors.tint }
-                ]}
-              >
-                {studentForm.gender === "Laki-laki" && (
-                  <View style={[styles.selectedRadio, { backgroundColor: colors.tint }]} />
-                )}
+      <Animated.View 
+        style={[
+          styles.animatedContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
+      >
+        <Card title="Informasi Pribadi">
+          <View style={styles.formContainer}>
+            <View style={styles.inputRow}>
+              <View style={[styles.inputColumn, { marginRight: 8 }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Nama Lengkap</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
+                  ]}
+                  placeholder="Masukkan nama lengkap"
+                  placeholderTextColor={colors.icon}
+                  value={studentForm.name}
+                  onChangeText={(text) => handleStudentInputChange("name", text)}
+                />
               </View>
-              <Text style={[styles.radioLabel, { color: colors.text }]}>Laki-laki</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => handleStudentInputChange("gender", "Perempuan")}
-            >
-              <View
-                style={[
-                  styles.radioCircle,
-                  studentForm.gender === "Perempuan" && { borderColor: colors.tint }
-                ]}
-              >
-                {studentForm.gender === "Perempuan" && (
-                  <View style={[styles.selectedRadio, { backgroundColor: colors.tint }]} />
-                )}
+              
+              <View style={[styles.inputColumn, { marginLeft: 8 }]}>
+                <Text style={[styles.label, { color: colors.text }]}>NIM</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
+                  ]}
+                  placeholder="Masukkan NIM"
+                  placeholderTextColor={colors.icon}
+                  value={studentForm.student_id}
+                  onChangeText={(text) => handleStudentInputChange("student_id", text)}
+                />
               </View>
-              <Text style={[styles.radioLabel, { color: colors.text }]}>Perempuan</Text>
-            </TouchableOpacity>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Username</Text>
+              <View style={styles.disabledInputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.disabledInput,
+                    {
+                      backgroundColor: colors.inputBackground,
+                      color: colors.text,
+                      borderColor: colors.inputBorder,
+                    }
+                  ]}
+                  placeholder="Username"
+                  placeholderTextColor={colors.icon}
+                  value={studentForm.username}
+                  editable={false}
+                />
+                <Ionicons name="lock-closed" size={16} color={colors.icon} style={styles.lockIcon} />
+              </View>
+            </View>
+
+            <View style={styles.inputRow}>
+              <View style={[styles.inputColumn, { marginRight: 8 }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
+                  ]}
+                  placeholder="email@example.com"
+                  placeholderTextColor={colors.icon}
+                  value={studentForm.email}
+                  onChangeText={(text) => handleStudentInputChange("email", text)}
+                  keyboardType="email-address"
+                />
+              </View>
+              
+              <View style={[styles.inputColumn, { marginLeft: 8 }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Telepon</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
+                  ]}
+                  placeholder="08xx-xxxx-xxxx"
+                  placeholderTextColor={colors.icon}
+                  value={studentForm.phone}
+                  onChangeText={(text) => handleStudentInputChange("phone", text)}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputRow}>
+              <View style={[styles.inputColumn, { marginRight: 8 }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Tanggal Lahir</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.input,
+                    styles.dateSelector,
+                    { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }
+                  ]}
+                  onPress={toggleDatePicker}
+                >
+                  <Text style={{ color: studentForm.birthday ? colors.text : colors.icon }}>
+                    {studentForm.birthday ? formatDisplayDate(studentForm.birthday) : "Pilih tanggal"}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color={colors.icon} />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={[styles.inputColumn, { marginLeft: 8 }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Jenis Kelamin</Text>
+                <View style={styles.genderContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      studentForm.gender === "Laki-laki" && { backgroundColor: colors.tint + '20', borderColor: colors.tint }
+                    ]}
+                    onPress={() => handleStudentInputChange("gender", "Laki-laki")}
+                  >
+                    <Text style={[
+                      styles.genderText,
+                      { color: studentForm.gender === "Laki-laki" ? colors.tint : colors.text }
+                    ]}>
+                      L
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      studentForm.gender === "Perempuan" && { backgroundColor: colors.tint + '20', borderColor: colors.tint }
+                    ]}
+                    onPress={() => handleStudentInputChange("gender", "Perempuan")}
+                  >
+                    <Text style={[
+                      styles.genderText,
+                      { color: studentForm.gender === "Perempuan" ? colors.tint : colors.text }
+                    ]}>
+                      P
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            <PrimaryButton
+              label="Simpan Profil"
+              onPress={saveStudentProfile}
+              loading={saving}
+              disabled={saving}
+              style={styles.saveButton}
+            />
           </View>
-        </View>
+        </Card>
 
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Student ID</Text>
-          <TextInput
-            style={[
-              styles.input,
-              { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
-            ]}
-            placeholder="Enter your student ID"
-            placeholderTextColor={colors.icon}
-            value={studentForm.student_id}
-            onChangeText={(text) => handleStudentInputChange("student_id", text)}
-          />
-        </View>
+        <Card title="Informasi Akademik">
+          <View style={styles.formContainer}>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Stase</Text>
+              <View style={[styles.dropdownContainer, { backgroundColor: colors.background }]}>
+                {loadingStases ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.tint} />
+                    <Text style={{ color: colors.text, marginLeft: 8 }}>Loading stases...</Text>
+                  </View>
+                ) : (
+                  <ScrollView style={styles.dropdownScrollView}>
+                    {stases.map((stase) => (
+                      <TouchableOpacity
+                        key={stase.id}
+                        style={[
+                          styles.dropdownItem,
+                          studentForm.stase_id === stase.id && {
+                            backgroundColor: colors.tint + '20',
+                          },
+                        ]}
+                        onPress={() => handleStaseSelect(stase.id)}
+                      >
+                        <View style={styles.dropdownItemContent}>
+                          <Text
+                            style={[
+                              styles.dropdownItemText,
+                              { color: colors.text },
+                              studentForm.stase_id === stase.id && { color: colors.tint, fontWeight: "bold" },
+                            ]}
+                          >
+                            {stase.name}
+                          </Text>
+                          {studentForm.stase_id === stase.id && (
+                            <Ionicons name="checkmark" size={20} color={colors.tint} />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            </View>
 
-        <PrimaryButton
-          label="Save Profile"
-          onPress={saveStudentProfile}
-          loading={saving}
-          disabled={saving}
-          style={styles.saveButton}
-        />
-      </View>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Kelompok</Text>
+              <View style={[styles.dropdownContainer, { backgroundColor: colors.background }]}>
+                {loadingGroups ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.tint} />
+                    <Text style={{ color: colors.text, marginLeft: 8 }}>Loading groups...</Text>
+                  </View>
+                ) : !studentForm.stase_id ? (
+                  <View style={[styles.dropdownPlaceholder, { borderColor: colors.inputBorder }]}>
+                    <Text style={[styles.placeholderText, { color: colors.icon }]}>
+                      Pilih stase terlebih dahulu
+                    </Text>
+                  </View>
+                ) : groups.length === 0 ? (
+                  <View style={[styles.dropdownPlaceholder, { borderColor: colors.inputBorder }]}>
+                    <Text style={[styles.placeholderText, { color: colors.icon }]}>
+                      Tidak ada kelompok tersedia untuk stase ini
+                    </Text>
+                  </View>
+                ) : (
+                  <ScrollView style={styles.dropdownScrollView}>
+                    {groups.map((group) => (
+                      <TouchableOpacity
+                        key={group.id}
+                        style={[
+                          styles.dropdownItem,
+                          studentForm.group_id === group.id && {
+                            backgroundColor: colors.tint + '20',
+                          },
+                        ]}
+                        onPress={() => handleStudentInputChange("group_id", group.id)}
+                      >
+                        <View style={styles.dropdownItemContent}>
+                          <Text
+                            style={[
+                              styles.dropdownItemText,
+                              { color: colors.text },
+                              studentForm.group_id === group.id && { color: colors.tint, fontWeight: "bold" },
+                            ]}
+                          >
+                            {group.name}
+                          </Text>
+                          {studentForm.group_id === group.id && (
+                            <Ionicons name="checkmark" size={20} color={colors.tint} />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            </View>
+          </View>
+        </Card>
+      </Animated.View>
     );
   };
 
@@ -698,6 +1030,139 @@ export default function ProfileScreen() {
     );
   };
 
+  // Enhanced password form render
+  const renderPasswordForm = () => {
+    return (
+      <Animated.View 
+        style={[
+          styles.animatedContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
+      >
+        <Card title="Keamanan">
+          <View style={styles.formContainer}>
+            <View style={styles.securityHeader}>
+              <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
+              <Text style={[styles.securityTitle, { color: colors.text }]}>
+                Ubah Password
+              </Text>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Password Saat Ini</Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
+                  ]}
+                  placeholder="Masukkan password saat ini"
+                  placeholderTextColor={colors.icon}
+                  value={passwordForm.current_password}
+                  onChangeText={(text) => handlePasswordChange("current_password", text)}
+                  secureTextEntry={!showPassword.current}
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => togglePasswordVisibility("current")}
+                >
+                  <Ionicons
+                    name={showPassword.current ? "eye-off" : "eye"}
+                    size={20}
+                    color={colors.icon}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Password Baru</Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
+                  ]}
+                  placeholder="Masukkan password baru"
+                  placeholderTextColor={colors.icon}
+                  value={passwordForm.new_password}
+                  onChangeText={(text) => handlePasswordChange("new_password", text)}
+                  secureTextEntry={!showPassword.new}
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => togglePasswordVisibility("new")}
+                >
+                  <Ionicons
+                    name={showPassword.new ? "eye-off" : "eye"}
+                    size={20}
+                    color={colors.icon}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Konfirmasi Password Baru</Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
+                  ]}
+                  placeholder="Konfirmasi password baru"
+                  placeholderTextColor={colors.icon}
+                  value={passwordForm.new_password_confirmation}
+                  onChangeText={(text) => handlePasswordChange("new_password_confirmation", text)}
+                  secureTextEntry={!showPassword.confirm}
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => togglePasswordVisibility("confirm")}
+                >
+                  <Ionicons
+                    name={showPassword.confirm ? "eye-off" : "eye"}
+                    size={20}
+                    color={colors.icon}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.passwordRequirements}>
+              <Text style={[styles.requirementsTitle, { color: colors.text }]}>
+                Persyaratan Password:
+              </Text>
+              <Text style={[styles.requirementText, { color: colors.icon }]}>
+                • Minimal 8 karakter
+              </Text>
+              <Text style={[styles.requirementText, { color: colors.icon }]}>
+                • Mengandung huruf besar dan kecil
+              </Text>
+              <Text style={[styles.requirementText, { color: colors.icon }]}>
+                • Mengandung angka dan karakter spesial (@$!%*?&)
+              </Text>
+            </View>
+
+            <PrimaryButton
+              label="Update Password"
+              onPress={handleUpdatePassword}
+              loading={updatingPassword}
+              disabled={updatingPassword}
+              style={styles.saveButton}
+            />
+          </View>
+        </Card>
+      </Animated.View>
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -714,9 +1179,15 @@ export default function ProfileScreen() {
           <View style={{ width: 24 }} />
         </View>
         
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Render form based on user role */}
           {role === "student" ? renderStudentForm() : renderAdvisorForm()}
+          
+          {/* Add password form */}
+          {renderPasswordForm()}
         </ScrollView>
         
         {/* Date picker modal */}
@@ -750,6 +1221,7 @@ function parseDate(dateString: string): Date {
   }
 }
 
+// Enhanced styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -830,9 +1302,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
-  saveButton: {
-    marginTop: 24,
-  },
   pickerContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -853,5 +1322,125 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
+  },
+  helperText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  dropdownContainer: {
+    borderRadius: 10,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    maxHeight: 200,
+  },
+  dropdownScrollView: {
+    maxHeight: 200,
+  },
+  dropdownItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  dropdownItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownItemText: {
+    fontSize: 16,
+  },
+  dropdownPlaceholder: {
+    padding: 15,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  placeholderText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  animatedContainer: {
+    marginBottom: 16,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  inputColumn: {
+    flex: 1,
+  },
+  disabledInputContainer: {
+    position: 'relative',
+  },
+  disabledInput: {
+    opacity: 0.7,
+  },
+  lockIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 16,
+  },
+  genderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  genderButton: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 8,
+    borderColor: '#ddd',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  genderText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  securityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  securityTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  passwordInputContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 48,
+  },
+  passwordRequirements: {
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 8,
+  },
+  requirementsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  requirementText: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  saveButton: {
+    marginTop: 8,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 12,
+    padding: 4,
   },
 }); 

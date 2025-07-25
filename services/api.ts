@@ -64,7 +64,7 @@ export interface AdvisorRegistrationData {
   phone: string;
   birthday: string;
   gender: string;
-  stase_id: number;
+  stace_id: number; // Changed from stase_id to stace_id
   type: string; // "academic" or "clinic"
   // Fields for academic preceptor
   npwp?: string;
@@ -82,6 +82,13 @@ export interface FileData {
   updated_at: string;
   name: string;
   file: string;
+  stace_id: number;
+  stace: {
+    id: number;
+    name: string;
+    created_at: string;
+    updated_at: string;
+  };
 }
 
 // Activity data structure
@@ -119,6 +126,7 @@ export interface StudentProfileUpdateData {
   phone: string;
   birthday: string;
   gender: string;
+  group_id: number;
   student_id: string;
 }
 
@@ -211,6 +219,13 @@ export interface AttendanceDetail {
     description: string | null;
     check_time: string;
   } | null;
+}
+
+// Add interface for update password
+export interface UpdatePasswordData {
+  current_password: string;
+  new_password: string;
+  new_password_confirmation: string;
 }
 
 // Error handling for fetch
@@ -591,6 +606,13 @@ export const api = {
     return fetchWithTimeout<GroupData[]>(url, options);
   },
 
+  // Get groups by stase ID
+  getGroupsByStase: async (staseId: number, token?: string): Promise<ApiResponse<GroupData[]>> => {
+    const url = `${API_URL}/groups/${staseId}`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<GroupData[]>(url, options);
+  },
+
   // Register a new student
   registerStudent: async (
     data: RegistrationData
@@ -628,7 +650,7 @@ export const api = {
       phone: data.phone.trim(),
       birthday: data.birthday.trim(),
       gender: data.gender.trim(),
-      stace_id: Number(data.stase_id),
+      stace_id: Number(data.stace_id), // Changed from stase_id to stace_id
       type: data.type,
       password: data.password,
     };
@@ -651,11 +673,6 @@ export const api = {
     const url = `${API_URL}/files`;
     const options = createRequestOptions("POST", undefined, token);
     return fetchWithTimeout<FileData[]>(url, options);
-  },
-
-  // Get file download URL
-  getFileDownloadUrl: (fileId: number): string => {
-    return `${API_URL}/files/downloads/${fileId}`;
   },
 
   // Get all activities
@@ -713,12 +730,12 @@ export const api = {
     return fetchWithTimeout<any>(url, options);
   },
 
-  // Update student profile
+  // Update student profile with new endpoint
   updateStudentProfile: async (
     token: string,
     data: StudentProfileUpdateData
   ): Promise<ApiResponse<UserSessionData>> => {
-    const url = `${API_URL}${ENDPOINTS.UPDATE_STUDENT_PROFILE}`;
+    const url = `${API_URL}/students/profile`;
     const options = createRequestOptions("PUT", data, token);
     return fetchWithTimeout<UserSessionData>(url, options);
   },
@@ -1086,5 +1103,15 @@ export const api = {
         message: error instanceof Error ? error.message : "Unknown error",
       };
     }
+  },
+
+  // Update password
+  updatePassword: async (
+    token: string,
+    data: UpdatePasswordData
+  ): Promise<ApiResponse<null>> => {
+    const url = `${API_URL}/auth/update-password`;
+    const options = createRequestOptions("POST", data, token);
+    return fetchWithTimeout<null>(url, options);
   },
 };

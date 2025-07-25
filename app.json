@@ -1,35 +1,35 @@
 {
   "expo": {
-    "name": "absence-mobile",
-    "slug": "absence-mobile",
+    "name": "Makuta",
+    "slug": "makuta",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "icon": "./assets/images/adaptive-icon.png",
+    "scheme": "makuta",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zychan.absencemobile"
+      "bundleIdentifier": "com.zychan.makuta"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.zychan.absencemobile"
+      "package": "com.zychan.makuta"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/adaptive-icon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/adaptive-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -44,7 +44,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "7206aacb-0810-4b40-8ed1-17f02301a591"
+        "projectId": "ce6f28a5-b3ab-4ebb-9504-e2d385c2434a"
       }
     }
   }

@@ -38,7 +38,7 @@ interface RegistrationData {
   birthday: string;
   student_id: string;
   group_id: number | null;
-  stase_id: number | null;
+  stace_id: number | null; // Changed from stase_id to stace_id
   phone: string;
   
   // Fields for preceptors
@@ -75,7 +75,7 @@ export default function RegisterScreen() {
     birthday: "",
     student_id: "",
     group_id: null,
-    stase_id: null,
+    stace_id: null, // Changed from stase_id to stace_id
     phone: "",
     
     // Fields for preceptors
@@ -152,7 +152,7 @@ export default function RegisterScreen() {
             return false;
           }
         } else if (formData.role === "preseptor_akademik") {
-          if (formData.stase_id === null) {
+          if (formData.stace_id === null) {
             Alert.alert("Error", "Stase wajib dipilih");
             return false;
           }
@@ -165,7 +165,7 @@ export default function RegisterScreen() {
             return false;
           }
         } else if (formData.role === "preseptor_klinik") {
-          if (formData.stase_id === null) {
+          if (formData.stace_id === null) {
             Alert.alert("Error", "Stase wajib dipilih");
             return false;
           }
@@ -299,7 +299,7 @@ export default function RegisterScreen() {
           phone: formData.phone,
           birthday: formData.birthday, // already in dd-mm-yyyy format
           gender: formData.gender,
-          stase_id: formData.stase_id!,
+          stace_id: formData.stace_id!, // Changed from stase_id to stace_id
           type: formData.type,
           password: formData.password
         };

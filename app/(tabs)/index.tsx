@@ -165,6 +165,16 @@ export default function DashboardScreen() {
   const [advisorStatistics, setAdvisorStatistics] = useState<AdvisorStatistics | null>(null);
   const router = useRouter();
 
+  // Format date helper function
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
   // Fetch statistics when component mounts
   useEffect(() => {
     if (role === "student" && token) {
@@ -414,6 +424,54 @@ export default function DashboardScreen() {
     }
   };
 
+  // Render student group info
+  const renderStudentGroupInfo = () => {
+    if (role !== "student" || !userInfo) return null;
+
+    const formatDate = (dateString: string) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    };
+
+    return (
+      <>
+        <Card title="Informasi Kelompok">
+          <View style={styles.groupInfoContainer}>
+            <View style={styles.groupInfoRow}>
+              <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Stase</Text>
+              <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.stace_name}</Text>
+            </View>
+            <View style={styles.groupInfoRow}>
+              <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Kelompok</Text>
+              <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.group_name}</Text>
+            </View>
+            <View style={styles.groupInfoRow}>
+              <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Periode</Text>
+              <Text style={[styles.groupInfoValue, { color: colors.text }]}>
+                {userInfo.group_start_date && userInfo.group_end_date ? 
+                  `${formatDate(userInfo.group_start_date)} - ${formatDate(userInfo.group_end_date)}` :
+                  '-'
+                }
+              </Text>
+            </View>
+            {userInfo.group_status !== "running" && (
+              <View style={[styles.warningContainer, { backgroundColor: colors.error + '20' }]}>
+                <Ionicons name="warning" size={20} color={colors.error} />
+                <Text style={[styles.warningText, { color: colors.error }]}>
+                  Periode sudah berakhir, silakan ganti kelompok
+                </Text>
+              </View>
+            )}
+          </View>
+        </Card>
+      </>
+    );
+  };
+
   // Render content based on role
   const renderRoleContent = () => {
     switch (role) {
@@ -626,6 +684,39 @@ export default function DashboardScreen() {
           />
         )}
 
+        {/* Show group info for students before calendar */}
+        {role === "student" && userInfo && (
+          <Card title="Informasi Kelompok">
+            <View style={styles.groupInfoContainer}>
+              <View style={styles.groupInfoRow}>
+                <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Stase</Text>
+                <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.stace_name}</Text>
+              </View>
+              <View style={styles.groupInfoRow}>
+                <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Kelompok</Text>
+                <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.group_name}</Text>
+              </View>
+              <View style={styles.groupInfoRow}>
+                <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Periode</Text>
+                <Text style={[styles.groupInfoValue, { color: colors.text }]}>
+                  {userInfo.group_start_date && userInfo.group_end_date ? 
+                    `${formatDate(userInfo.group_start_date)} - ${formatDate(userInfo.group_end_date)}` :
+                    '-'
+                  }
+                </Text>
+              </View>
+              {userInfo.group_status !== "running" && (
+                <View style={[styles.warningContainer, { backgroundColor: colors.error + '20' }]}>
+                  <Ionicons name="warning" size={20} color={colors.error} />
+                  <Text style={[styles.warningText, { color: colors.error }]}>
+                    Periode sudah berakhir, silakan ganti kelompok
+                  </Text>
+                </View>
+              )}
+            </View>
+          </Card>
+        )}
+
         <Card title="Kalender Aktivitas">
           {loading ? (
             <View style={styles.calendarLoading}>
@@ -717,5 +808,34 @@ const styles = StyleSheet.create({
     height: 250,
     alignItems: "center",
     justifyContent: "center",
+  },
+  groupInfoContainer: {
+    padding: 15,
+  },
+  groupInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  groupInfoLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  groupInfoValue: {
+    fontSize: 14,
+    flex: 1,
+    textAlign: 'right',
+  },
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  warningText: {
+    marginLeft: 8,
+    fontSize: 14,
+    flex: 1,
   },
 });

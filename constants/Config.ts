@@ -13,6 +13,7 @@ const prodApiUrl = process.env.EXPO_PUBLIC_API_URL || defaultProdApiUrl;
 // Set API URL based on environment
 // export const API_URL = prodApiUrl; // Use the production URL by default
 export const API_URL = process.env.EXPO_PUBLIC_API_URL;
+export const API_FILE_URL = process.env.EXPO_PUBLIC_API_FILE_URL;
 // API Endpoints
 export const ENDPOINTS = {
   LOGIN: "/auth/login",

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import * as FileSystem from 'expo-file-system';
-import * as IntentLauncher from 'expo-intent-launcher';
+import { router } from 'expo-router';
+import { API_FILE_URL } from '@/constants/Config';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/constants/Colors';
@@ -22,7 +22,6 @@ export default function PanduanScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-    const [downloading, setDownloading] = useState<number | null>(null);
   
   // Fetch guide files from API
   const fetchFiles = async () => {
@@ -63,93 +62,26 @@ export default function PanduanScreen() {
     fetchFiles();
   };
 
-  // Download and share a file
-  const handleDownload = async (id: number, fileName: string) => {
+  // View PDF file
+  const handleViewFile = async (file: FileData) => {
     try {
-      setDownloading(id);
-      
-      // Get download URL from API
-      const downloadUrl = api.getFileDownloadUrl(id);
-      
-      // Create local file path with proper extension and sanitized name
-      const fileExt = fileName.split('.').pop() || 'pdf';
-      const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const localUri = FileSystem.documentDirectory + sanitizedFileName;
-      
-      // Make POST request to download file
-      console.log(downloadUrl);
-      
-      const response = await fetch(downloadUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json',
+      // Navigate to PDF viewer screen
+      router.push({
+        pathname: '/panduan-view',
+        params: {
+          filePath: file.file,
+          fileName: file.name,
         },
       });
-
-             if (response.ok) {
-         // Get the response as array buffer for proper binary handling
-         const arrayBuffer = await response.arrayBuffer();
-         
-         // Convert array buffer to base64
-         const bytes = new Uint8Array(arrayBuffer);
-         let binary = '';
-         for (let i = 0; i < bytes.byteLength; i++) {
-           binary += String.fromCharCode(bytes[i]);
-         }
-         const base64 = btoa(binary);
-         
-                  // Write file to local storage
-         await FileSystem.writeAsStringAsync(localUri, base64, {
-           encoding: FileSystem.EncodingType.Base64,
-         });
-         
-         // Show notification with file location
-         await showNotification({
-           title: 'Download Selesai',
-           message: `File "${fileName}" berhasil diunduh. Tap untuk buka lokasi file.`,
-           data: { 
-             type: 'file_download',
-             filePath: localUri 
-           },
-         });
-       } else {
-         throw new Error(`Download failed with status: ${response.status}`);
-       }
-     } catch (err) {
-       console.error('Error downloading file:', err);
-       alert('Failed to download file. Please try again later.');
-     } finally {
-       setDownloading(null);
-     }
-  };
-
-  // Get MIME type based on file extension
-  const getMimeType = (extension: string): string => {
-    switch (extension.toLowerCase()) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'doc':
-        return 'application/msword';
-      case 'docx':
-        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      case 'xls':
-        return 'application/vnd.ms-excel';
-      case 'xlsx':
-        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      case 'ppt':
-        return 'application/vnd.ms-powerpoint';
-      case 'pptx':
-        return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-      case 'txt':
-        return 'text/plain';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      default:
-        return 'application/octet-stream';
+      
+      // Show notification that viewing has started
+      await showNotification({
+        title: 'Membuka File',
+        message: `Membuka "${file.name}"`,
+      });
+    } catch (err) {
+      console.error('Error viewing file:', err);
+      alert('Failed to open file. Please try again later.');
     }
   };
   
@@ -167,7 +99,6 @@ export default function PanduanScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <View style={styles.header}>
-
       </View>
       
       <ScrollView 
@@ -219,8 +150,7 @@ export default function PanduanScreen() {
             <TouchableOpacity
               key={file.id}
               style={[styles.fileItem, { backgroundColor: colors.background }]}
-              onPress={() => handleDownload(file.id, file.name)}
-              disabled={downloading === file.id}
+              onPress={() => handleViewFile(file)}
             >
               <View style={styles.fileContent}>
                 <View style={[styles.fileIconContainer, { backgroundColor: colors.tint + '20' }]}>
@@ -231,33 +161,22 @@ export default function PanduanScreen() {
                     {file.name}
                   </Text>
                   <Text style={[styles.fileDate, { color: colors.icon }]}>
+                    {file.stace.name}
+                  </Text>
+                  <Text style={[styles.fileDate, { color: colors.icon }]}>
                     Ditambahkan pada {formatDate(file.created_at)}
                   </Text>
                 </View>
-                {downloading === file.id ? (
-                  <ActivityIndicator size="small" color={colors.tint} />
-                ) : (
-                  <TouchableOpacity 
-                    style={[styles.downloadButton, { backgroundColor: colors.tint }]}
-                    onPress={() => handleDownload(file.id, file.name)}
-                  >
-                    <Ionicons name="download-outline" size={18} color="white" />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity 
+                  style={[styles.viewButton, { backgroundColor: colors.tint }]}
+                  onPress={() => handleViewFile(file)}
+                >
+                  <Ionicons name="document-text-outline" size={18} color="white" />
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           ))
         )}
-        
-        {/* <Card title="Tentang Dokumen">
-          <Text style={[styles.aboutText, { color: colors.text }]}>
-            Dokumen panduan disediakan untuk membantu pengguna memahami proses dan prosedur dalam aplikasi. 
-            Silakan unduh dokumen yang diperlukan dengan menekan tombol unduh.
-          </Text>
-          <Text style={[styles.aboutText, { color: colors.text, marginTop: 10 }]}>
-            Jika Anda memerlukan bantuan lebih lanjut, hubungi administrator.
-          </Text>
-        </Card> */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -316,7 +235,7 @@ const styles = StyleSheet.create({
   fileDate: {
     fontSize: 12,
   },
-  downloadButton: {
+  viewButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -360,9 +279,5 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     textAlign: 'center',
-  },
-  aboutText: {
-    fontSize: 14,
-    lineHeight: 20,
   },
 }); 
