@@ -61,6 +61,31 @@ interface LogbookDetails {
     description: string;
     check_time: string;
     scores: any[];
+    sub_activity_scores_grouped?: {
+      category: {
+        id: number;
+        name: string;
+        description: string;
+        percentage: number;
+      };
+      sub_activities: {
+        id: number;
+        name: string;
+        description: string;
+        scores: any[];
+        average_score: number | null;
+        total_scores: number;
+        has_score: boolean;
+      }[];
+      category_average_score: number | null;
+      total_scores_in_category: number;
+      total_sub_activities: number;
+      scored_sub_activities: number;
+      category_completion_percentage: number;
+    }[];
+    total_sub_activity_score: number | null;
+    total_scored_sub_activities: number;
+    total_selected_sub_activities: number;
   };
 }
 
@@ -508,6 +533,70 @@ export default function LaporanScreen() {
                         resizeMode="cover"
                       />
                     </View>
+
+                    {/* Sub-Activity Scores */}
+                    {logbookDetails.check_out.sub_activity_scores_grouped && 
+                     logbookDetails.check_out.sub_activity_scores_grouped.length > 0 && (
+                      <>
+                        <Text style={[styles.photoLabel, { color: colors.text, marginTop: 12 }]}>
+                          Aktivitas Tambahan
+                        </Text>
+                        {logbookDetails.check_out.sub_activity_scores_grouped.map((categoryScore, index) => (
+                          <View key={`category-${index}`} style={styles.subActivityCategoryContainer}>
+                            <View style={styles.subActivityCategoryHeader}>
+                              <Text style={[styles.subActivityCategoryName, { color: colors.text }]}>
+                                {categoryScore.category.name}
+                              </Text>
+                              <Text style={[styles.subActivityCategoryPercentage, { color: colors.text }]}>
+                                {categoryScore.category.percentage}%
+                              </Text>
+                            </View>
+                            {categoryScore.sub_activities.map((subActivity, subIndex) => (
+                              <View key={`sub-activity-${subIndex}`} style={styles.subActivityItemContainer}>
+                                <Text style={[styles.subActivityItemName, { color: colors.text }]}>
+                                  {subActivity.name}
+                                </Text>
+                                <Text style={[styles.subActivityItemScore, { color: colors.text }]}>
+                                  {subActivity.average_score !== null 
+                                    ? `Skor: ${subActivity.average_score.toFixed(2)}` 
+                                    : 'Belum dinilai'}
+                                </Text>
+                              </View>
+                            ))}
+                            <View style={styles.subActivityCategorySummary}>
+                              <Text style={[styles.subActivityCategorySummaryText, { color: colors.text }]}>
+                                Total Sub Aktivitas: {categoryScore.total_sub_activities}
+                              </Text>
+                              <Text style={[styles.subActivityCategorySummaryText, { color: colors.text }]}>
+                                Skor Kategori: {categoryScore.category_average_score !== null 
+                                  ? categoryScore.category_average_score.toFixed(2) 
+                                  : 'Belum dinilai'}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                        
+                        {/* Overall Sub-Activity Summary */}
+                        <View style={styles.overallSubActivitySummary}>
+                          <Text style={[styles.overallSubActivitySummaryTitle, { color: colors.text }]}>
+                            Ringkasan Aktivitas Tambahan
+                          </Text>
+                          <View style={styles.overallSubActivitySummaryDetails}>
+                            <Text style={[styles.overallSubActivitySummaryText, { color: colors.text }]}>
+                              Total Sub Aktivitas Terpilih: {logbookDetails.check_out.total_selected_sub_activities}
+                            </Text>
+                            <Text style={[styles.overallSubActivitySummaryText, { color: colors.text }]}>
+                              Total Sub Aktivitas Dinilai: {logbookDetails.check_out.total_scored_sub_activities}
+                            </Text>
+                            <Text style={[styles.overallSubActivitySummaryText, { color: colors.text }]}>
+                              Total Skor Sub Aktivitas: {logbookDetails.check_out.total_sub_activity_score !== null 
+                                ? logbookDetails.check_out.total_sub_activity_score.toFixed(2) 
+                                : 'Belum dinilai'}
+                            </Text>
+                          </View>
+                        </View>
+                      </>
+                    )}
                   </Card>
                 )}
               </ScrollView>
@@ -962,5 +1051,66 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     fontWeight: '500',
+  },
+  // Sub-activity styles
+  subActivityCategoryContainer: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#00000010",
+  },
+  subActivityCategoryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  subActivityCategoryName: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  subActivityCategoryPercentage: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  subActivityItemContainer: {
+    marginBottom: 8,
+  },
+  subActivityItemName: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  subActivityItemScore: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  subActivityCategorySummary: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 0.5,
+    borderTopColor: "#00000010",
+  },
+  subActivityCategorySummaryText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  overallSubActivitySummary: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 0.5,
+    borderTopColor: "#00000010",
+  },
+  overallSubActivitySummaryTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  overallSubActivitySummaryDetails: {
+    marginLeft: 10,
+  },
+  overallSubActivitySummaryText: {
+    fontSize: 14,
+    marginBottom: 4,
   },
 });

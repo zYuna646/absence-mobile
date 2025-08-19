@@ -30,6 +30,7 @@ export const ENDPOINTS = {
   UPDATE_ADVISOR_PROFILE: "/advisors/profile",
   VISITS: "/visits",
   LOGBOOKS: "/logbooks",
+  ADDITIONAL_ACTIVITIES: "/additional-activities",
   ATTENDANCES: "/attendances",
 };
 

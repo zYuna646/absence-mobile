@@ -12,6 +12,7 @@ import {
   Image,
   Linking,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/constants/Colors";
@@ -50,6 +51,14 @@ export default function LogbookScreen() {
   const [address, setAddress] = useState<string>("");
   const [loadingLocation, setLoadingLocation] = useState(false);
 
+  // Additional activities state
+  const [additionalCategories, setAdditionalCategories] = useState<any[]>([]);
+  const [loadingAdditional, setLoadingAdditional] = useState(false);
+  const [selectedAdditionalActivities, setSelectedAdditionalActivities] = useState<{
+    categoryId: number;
+    subCategoryId: number;
+  }[]>([]);
+
   // Request permissions on mount
   useEffect(() => {
     (async () => {
@@ -66,6 +75,28 @@ export default function LogbookScreen() {
       }
     })();
   }, []);
+
+  // Fetch additional activities for checkout
+  useEffect(() => {
+    const fetchAdditionalActivities = async () => {
+      if (mode !== "checkout" || !token) return;
+      try {
+        setLoadingAdditional(true);
+        const res = await api.getAdditionalActivities(token, { is_logbook_activity: true });
+        if (res.success && res.data) {
+          setAdditionalCategories(Array.isArray(res.data) ? res.data : []);
+        } else {
+          setAdditionalCategories([]);
+        }
+      } catch (e) {
+        console.error("Error fetching additional activities:", e);
+        setAdditionalCategories([]);
+      } finally {
+        setLoadingAdditional(false);
+      }
+    };
+    fetchAdditionalActivities();
+  }, [mode, token]);
 
   // Update current date
   const updateCurrentTime = () => {
@@ -247,7 +278,18 @@ export default function LogbookScreen() {
       formData.append("longitude", location.coords.longitude.toString());
       formData.append("address", address);
       formData.append("description", description);
-      
+
+      // Append selected additional sub-activity IDs
+      if (selectedAdditionalActivities.length > 0) {
+        const subAdditionalActivityIds = selectedAdditionalActivities
+          .filter((act) => act.subCategoryId > 0)
+          .map((act) => act.subCategoryId.toString());
+        
+        formData.append("sub_additional_activity_ids", JSON.stringify(subAdditionalActivityIds));
+      }
+
+      console.log(formData);
+
       // Append photo
       const photoName = photo.split("/").pop() || "photo.jpg";
       const photoType = "image/jpeg";
@@ -284,6 +326,20 @@ export default function LogbookScreen() {
 
   // Handle form submission
   const handleSubmit = () => {
+    if (mode === "checkout") {
+      // Validate additional activities
+      const hasInvalidSelection = selectedAdditionalActivities.some(
+        (act) => act.categoryId > 0 && act.subCategoryId === 0
+      );
+      
+      if (hasInvalidSelection) {
+        Alert.alert(
+          "Validasi Aktivitas Tambahan", 
+          "Harap pilih sub kategori untuk setiap kategori yang dipilih"
+        );
+        return;
+      }
+    }
     if (mode === "checkout") {
       handleCheckOut();
     } else {
@@ -514,6 +570,126 @@ export default function LogbookScreen() {
               />
             </View>
           )}
+
+          {/* Additional activities (checkout only) */}
+          {mode === "checkout" && (
+            <View style={styles.formGroup}>
+              <View style={styles.additionalActivitiesHeader}>
+                <Text style={[styles.label, { color: colors.text, flex: 1 }]}>Aktivitas Tambahan</Text>
+                <TouchableOpacity
+                  style={[styles.addButton, { backgroundColor: colors.tint }]}
+                  onPress={() => {
+                    // Add a new empty selection
+                    setSelectedAdditionalActivities((prev) => [...prev, { categoryId: 0, subCategoryId: 0 }]);
+                  }}
+                >
+                  <Ionicons name="add" size={20} color="white" />
+                  <Text style={styles.addButtonText}>Tambah</Text>
+                </TouchableOpacity>
+              </View>
+              {loadingAdditional ? (
+                <View style={[styles.locationContainer, { borderColor: colors.inputBorder }]}>
+                  <ActivityIndicator size="small" color={colors.tint} />
+                  <Text style={[styles.locationText, { color: colors.text }]}>Memuat aktivitas tambahan...</Text>
+                </View>
+              ) : (
+                <View>
+                  {selectedAdditionalActivities.map((selection, index) => {
+                    // Filter categories with non-empty sub-categories
+                    const validCategories = additionalCategories.filter(
+                      (cat) => Array.isArray(cat.sub_categories) && 
+                               cat.sub_categories.some((s: any) => s.is_logbook_activity)
+                    );
+
+                    // Get sub-categories for the selected category
+                    const selectedCategorySubCategories = 
+                      selection.categoryId 
+                        ? additionalCategories
+                            .find((cat) => cat.id === selection.categoryId)
+                            ?.sub_categories.filter((s: any) => s.is_logbook_activity) 
+                        : [];
+
+                    return (
+                      <View key={`additional-activity-${index}`} style={styles.additionalActivityContainer}>
+                        {/* Category Selector */}
+                        <View style={styles.additionalActivityPickerGroup}>
+                          <Text style={[styles.additionalActivityLabel, { color: colors.text }]}>
+                            Kategori Aktivitas
+                          </Text>
+                          <View style={[styles.pickerWrapper, { borderColor: colors.inputBorder }]}>
+                            <Picker
+                              selectedValue={selection.categoryId}
+                              onValueChange={(itemValue) => {
+                                const newSelections = [...selectedAdditionalActivities];
+                                newSelections[index] = { categoryId: itemValue, subCategoryId: 0 };
+                                setSelectedAdditionalActivities(newSelections);
+                              }}
+                              style={{ color: colors.text }}
+                            >
+                              <Picker.Item label="Pilih Kategori Aktivitas" value={0} />
+                              {validCategories.map((cat) => (
+                                <Picker.Item 
+                                  key={`cat-${cat.id}`} 
+                                  label={cat.name} 
+                                  value={cat.id} 
+                                />
+                              ))}
+                            </Picker>
+                          </View>
+                        </View>
+
+                        {/* Sub-Category Selector */}
+                        {selection.categoryId > 0 && (
+                          <View style={styles.additionalActivityPickerGroup}>
+                            <Text style={[styles.additionalActivityLabel, { color: colors.text }]}>
+                              Aktivitas
+                            </Text>
+                            <View style={[styles.pickerWrapper, { borderColor: colors.inputBorder }]}>
+                              <Picker
+                                selectedValue={selection.subCategoryId}
+                                onValueChange={(itemValue) => {
+                                  const newSelections = [...selectedAdditionalActivities];
+                                  newSelections[index] = { ...newSelections[index], subCategoryId: itemValue };
+                                  setSelectedAdditionalActivities(newSelections);
+                                }}
+                                style={{ color: colors.text }}
+                              >
+                                <Picker.Item label="Pilih Aktivitas" value={0} />
+                                {selectedCategorySubCategories?.map((sub: any) => (
+                                  <Picker.Item 
+                                    key={`sub-${sub.id}`} 
+                                    label={sub.name} 
+                                    value={sub.id} 
+                                  />
+                                ))}
+                              </Picker>
+                            </View>
+                          </View>
+                        )}
+
+                        {/* Delete Button */}
+                        <TouchableOpacity
+                          style={[styles.deleteActivityButton, { backgroundColor: 'red' }]}
+                          onPress={() => {
+                            const newSelections = selectedAdditionalActivities.filter((_, i) => i !== index);
+                            setSelectedAdditionalActivities(newSelections);
+                          }}
+                        >
+                          <Ionicons name="trash" size={16} color="white" style={styles.deleteActivityButtonIcon} />
+                          <Text style={styles.deleteActivityButtonText}>Hapus</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+
+                  {/* No activities message */}
+                  {additionalCategories.length === 0 && (
+                    <Text style={{ color: colors.icon, fontSize: 12 }}>Tidak ada aktivitas tambahan tersedia.</Text>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
         </Card>
         
         <PrimaryButton
@@ -524,7 +700,11 @@ export default function LogbookScreen() {
             submitting || 
             !photo || 
             !location || 
-            (mode === "checkout" && !description)
+            (mode === "checkout" && (!description || 
+              selectedAdditionalActivities.some(
+                (act) => act.categoryId > 0 && act.subCategoryId === 0
+              )
+            ))
           }
           style={styles.submitButton}
         />
@@ -670,5 +850,92 @@ const styles = StyleSheet.create({
   refreshText: {
     marginLeft: 6,
     fontWeight: "500",
+  },
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: 8,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  checkboxDescription: {
+    fontSize: 12,
+  },
+  categoryTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  additionalActivitiesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: "white",
+    marginLeft: 8,
+    fontWeight: "500",
+  },
+  additionalActivityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    backgroundColor: "#f0f0f0", // Optional: for visual separation
+    borderRadius: 8,
+    padding: 12,
+  },
+  additionalActivityContainer: {
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    position: 'relative', // For absolute positioning of delete button
+  },
+  additionalActivityPickerGroup: {
+    marginBottom: 12, // Space between picker groups
+  },
+  additionalActivityLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  pickerWrapper: {
+    borderWidth: 0.5,
+    borderRadius: 8,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderRadius: 6,
+  },
+  deleteActivityButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    backgroundColor: '#FF4D4D', // Slightly softer red
+  },
+  deleteActivityButtonIcon: {
+    marginRight: 8,
+  },
+  deleteActivityButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
 }); 

@@ -366,6 +366,27 @@ export const api = {
     return fetchWithTimeout<LoginResponseData>(url, options);
   },
 
+  // Additional Activities
+  getAdditionalActivities: async (
+    token: string,
+    params?: { is_logbook_activity?: boolean }
+  ): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params && typeof params.is_logbook_activity !== "undefined") {
+      queryParams.append(
+        "is_logbook_activity",
+        params.is_logbook_activity ? "true" : "false"
+      );
+    }
+
+    const queryString = queryParams.toString();
+    const url = `${API_URL}${ENDPOINTS.ADDITIONAL_ACTIVITIES}${
+      queryString ? `?${queryString}` : ""
+    }`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
   // Get user session (profile)
   getSession: async (
     token: string,
@@ -895,7 +916,13 @@ export const api = {
   async verifyLogbook(
     token: string,
     checkOutId: number,
-    data: { score: number; notes?: string }
+    data: { 
+      scores: {
+        sub_additional_activity_id: number;
+        score: number;
+        note?: string;
+      }[];
+    }
   ): Promise<ApiResponse<any>> {
     try {
       const url = `${API_URL}${ENDPOINTS.LOGBOOKS}/${checkOutId}/verify`;

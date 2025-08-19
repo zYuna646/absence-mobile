@@ -60,6 +60,31 @@ interface CheckOut {
   description?: string;
   check_time: string;
   scores?: Score[];
+  sub_activity_scores_grouped?: {
+    category: {
+      id: number;
+      name: string;
+      description: string;
+      percentage: number;
+    };
+    sub_activities: {
+      id: number;
+      name: string;
+      description: string;
+      scores: any[];
+      average_score: number | null;
+      total_scores: number;
+      has_score: boolean;
+    }[];
+    category_average_score: number | null;
+    total_scores_in_category: number;
+    total_sub_activities: number;
+    scored_sub_activities: number;
+    category_completion_percentage: number;
+  }[];
+  total_sub_activity_score: number | null;
+  total_scored_sub_activities: number;
+  total_selected_sub_activities: number;
 }
 
 interface LogbookDetail {
@@ -77,7 +102,9 @@ export default function LogbookVerificationScreen() {
   const checkInId = params.checkInId ? parseInt(params.checkInId as string) : 0;
   const studentId = params.studentId ? parseInt(params.studentId as string) : 0;
   const studentName = (params.studentName as string) || "";
-  const activityId = params.activityId ? parseInt(params.activityId as string) : 0;
+  const activityId = params.activityId
+    ? parseInt(params.activityId as string)
+    : 0;
   const activityName = (params.activityName as string) || "";
 
   const [logbook, setLogbook] = useState<LogbookDetail | null>(null);
@@ -86,8 +113,12 @@ export default function LogbookVerificationScreen() {
 
   // Verification modal state
   const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [score, setScore] = useState<string>("0");
-  const [note, setNote] = useState<string>("");
+  const [subActivityScores, setSubActivityScores] = useState<{
+    [subActivityId: number]: {
+      score: string;
+      note: string;
+    };
+  }>({});
   const [submitting, setSubmitting] = useState(false);
 
   // Load logbook details on mount
@@ -138,18 +169,27 @@ export default function LogbookVerificationScreen() {
     try {
       setSubmitting(true);
 
-      // Parse score to number
-      const scoreValue = parseInt(score);
-      if (isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
-        Alert.alert("Error", "Nilai harus berupa angka antara 0-100");
-        setSubmitting(false);
-        return;
-      }
+      // Validate scores
+      const scores = Object.entries(subActivityScores).map(
+        ([subActivityId, scoreData]) => {
+          const scoreValue = parseInt(scoreData.score);
+          if (isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
+            throw new Error(
+              `Nilai untuk sub aktivitas ${subActivityId} harus berupa angka antara 0-100`
+            );
+          }
+
+          return {
+            sub_additional_activity_id: parseInt(subActivityId),
+            score: scoreValue,
+            note: scoreData.note || "",
+          };
+        }
+      );
 
       // Call the API to verify logbook
       const response = await api.verifyLogbook(token, logbook.check_out.id, {
-        score: scoreValue,
-        notes: note,
+        scores,
       });
 
       if (response.success) {
@@ -158,8 +198,7 @@ export default function LogbookVerificationScreen() {
             text: "OK",
             onPress: () => {
               setShowVerifyModal(false);
-              setScore("0"); // Reset score
-              setNote(""); // Reset note
+              setSubActivityScores({}); // Reset scores
               // Reload details to get updated verification data
               loadLogbookDetails();
             },
@@ -170,7 +209,10 @@ export default function LogbookVerificationScreen() {
       }
     } catch (error) {
       console.error("Error verifying logbook:", error);
-      Alert.alert("Error", "Gagal memverifikasi logbook");
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Gagal memverifikasi logbook"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -284,54 +326,216 @@ export default function LogbookVerificationScreen() {
                 >
                   Penilaian
                 </Text>
-                <View style={styles.scoreInputContainer}>
-                  <Text style={[styles.modalLabel, { color: colors.text }]}>
-                    Nilai (0-100)
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.scoreInput,
-                      {
-                        backgroundColor: colors.inputBackground,
-                        color: colors.text,
-                        borderColor: "#e0e0e0",
-                      },
-                    ]}
-                    placeholder="Masukkan nilai"
-                    placeholderTextColor={colors.icon}
-                    keyboardType="numeric"
-                    value={score}
-                    onChangeText={(text) => {
-                      const numValue = parseInt(text);
-                      if (text === "" || (numValue >= 0 && numValue <= 100)) {
-                        setScore(text);
-                      }
-                    }}
-                  />
-                </View>
+                {logbook?.check_out?.sub_activity_scores_grouped &&
+                  logbook.check_out.sub_activity_scores_grouped.length > 0 && (
+                    <View style={styles.subActivityScoresContainer}>
+                      {logbook.check_out.sub_activity_scores_grouped.map(
+                        (categoryScore, index) => (
+                          <View
+                            key={`category-${index}`}
+                            style={styles.subActivityCategoryContainer}
+                          >
+                            <View style={styles.subActivityCategoryHeader}>
+                              <Text
+                                style={[
+                                  styles.subActivityCategoryName,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                {categoryScore.category.name}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.subActivityCategoryPercentage,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                {categoryScore.category.percentage}%
+                              </Text>
+                            </View>
+                            {categoryScore.sub_activities.map(
+                              (subActivity, subIndex) => (
+                                <View
+                                  key={`sub-activity-${subIndex}`}
+                                  style={styles.subActivityItemContainer}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.subActivityItemName,
+                                      { color: colors.text },
+                                    ]}
+                                  >
+                                    {subActivity.name}
+                                  </Text>
+                                  {subActivity.description && (
+                                    <Text
+                                      style={[
+                                        styles.subActivityItemDescription,
+                                        { color: colors.text },
+                                      ]}
+                                    >
+                                      {subActivity.description}
+                                    </Text>
+                                  )}
+                                  <View style={styles.scoreInputContainer}>
+                                    <Text
+                                      style={[
+                                        styles.modalLabel,
+                                        { color: colors.text },
+                                      ]}
+                                    >
+                                      Nilai (0-100)
+                                    </Text>
+                                    <TextInput
+                                      style={[
+                                        styles.scoreInput,
+                                        {
+                                          backgroundColor:
+                                            colors.inputBackground,
+                                          color: colors.text,
+                                          borderColor: "#e0e0e0",
+                                        },
+                                      ]}
+                                      placeholder="Masukkan nilai"
+                                      placeholderTextColor={colors.icon}
+                                      keyboardType="numeric"
+                                      value={
+                                        subActivityScores[subActivity.id]
+                                          ?.score || ""
+                                      }
+                                      onChangeText={(text) => {
+                                        const numValue = parseInt(text);
+                                        if (
+                                          text === "" ||
+                                          (numValue >= 0 && numValue <= 100)
+                                        ) {
+                                          setSubActivityScores((prev) => ({
+                                            ...prev,
+                                            [subActivity.id]: {
+                                              ...prev[subActivity.id],
+                                              score: text,
+                                            },
+                                          }));
+                                        }
+                                      }}
+                                    />
+                                  </View>
+                                  <View style={styles.noteInputContainer}>
+                                    <Text
+                                      style={[
+                                        styles.modalLabel,
+                                        { color: colors.text },
+                                      ]}
+                                    >
+                                      Catatan Verifikasi
+                                    </Text>
+                                    <TextInput
+                                      style={[
+                                        styles.noteInput,
+                                        {
+                                          backgroundColor:
+                                            colors.inputBackground,
+                                          color: colors.text,
+                                          borderColor: "#e0e0e0",
+                                        },
+                                      ]}
+                                      placeholder="Tambahkan catatan (opsional)"
+                                      placeholderTextColor={colors.icon}
+                                      multiline
+                                      numberOfLines={4}
+                                      textAlignVertical="top"
+                                      value={
+                                        subActivityScores[subActivity.id]
+                                          ?.note || ""
+                                      }
+                                      onChangeText={(text) => {
+                                        setSubActivityScores((prev) => ({
+                                          ...prev,
+                                          [subActivity.id]: {
+                                            ...prev[subActivity.id],
+                                            note: text,
+                                          },
+                                        }));
+                                      }}
+                                    />
+                                  </View>
+                                </View>
+                              )
+                            )}
+                            <View style={styles.subActivityCategorySummary}>
+                              <Text
+                                style={[
+                                  styles.subActivityCategorySummaryText,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                Total Sub Aktivitas:{" "}
+                                {categoryScore.total_sub_activities}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.subActivityCategorySummaryText,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                Skor Kategori:{" "}
+                                {categoryScore.category_average_score !== null
+                                  ? categoryScore.category_average_score.toFixed(
+                                      2
+                                    )
+                                  : "Belum dinilai"}
+                              </Text>
+                            </View>
+                          </View>
+                        )
+                      )}
 
-                <View style={styles.noteInputContainer}>
-                  <Text style={[styles.modalLabel, { color: colors.text }]}>
-                    Catatan Verifikasi
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.noteInput,
-                      {
-                        backgroundColor: colors.inputBackground,
-                        color: colors.text,
-                        borderColor: "#e0e0e0",
-                      },
-                    ]}
-                    placeholder="Tambahkan catatan (opsional)"
-                    placeholderTextColor={colors.icon}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                    value={note}
-                    onChangeText={setNote}
-                  />
-                </View>
+                      {/* Overall Sub-Activity Summary */}
+                      <View style={styles.overallSubActivitySummary}>
+                        <Text
+                          style={[
+                            styles.overallSubActivitySummaryTitle,
+                            { color: colors.text },
+                          ]}
+                        >
+                          Ringkasan Aktivitas Tambahan
+                        </Text>
+                        <View style={styles.overallSubActivitySummaryDetails}>
+                          <Text
+                            style={[
+                              styles.overallSubActivitySummaryText,
+                              { color: colors.text },
+                            ]}
+                          >
+                            Total Sub Aktivitas Terpilih:{" "}
+                            {logbook.check_out.total_selected_sub_activities}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.overallSubActivitySummaryText,
+                              { color: colors.text },
+                            ]}
+                          >
+                            Total Sub Aktivitas Dinilai:{" "}
+                            {logbook.check_out.total_scored_sub_activities}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.overallSubActivitySummaryText,
+                              { color: colors.text },
+                            ]}
+                          >
+                            Total Skor Sub Aktivitas:{" "}
+                            {logbook.check_out.total_sub_activity_score !== null
+                              ? logbook.check_out.total_sub_activity_score.toFixed(
+                                  2
+                                )
+                              : "Belum dinilai"}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
               </View>
             </ScrollView>
 
@@ -536,6 +740,156 @@ export default function LogbookVerificationScreen() {
                     resizeMode="cover"
                   />
                 </View>
+
+                {/* Sub-Activity Scores */}
+                {logbook.check_out.sub_activity_scores_grouped &&
+                  logbook.check_out.sub_activity_scores_grouped.length > 0 && (
+                    <View style={styles.subActivityScoresContainer}>
+                      <Text
+                        style={[
+                          styles.sectionTitle,
+                          { color: colors.text, marginTop: 16 },
+                        ]}
+                      >
+                        Aktivitas Tambahan
+                      </Text>
+                      {logbook.check_out.sub_activity_scores_grouped.map(
+                        (categoryScore, index) => (
+                          <View
+                            key={`category-${index}`}
+                            style={styles.subActivityCategoryContainer}
+                          >
+                            <View style={styles.subActivityCategoryHeader}>
+                              <Text
+                                style={[
+                                  styles.subActivityCategoryName,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                {categoryScore.category.name}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.subActivityCategoryPercentage,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                {categoryScore.category.percentage}%
+                              </Text>
+                            </View>
+                            {categoryScore.sub_activities.map(
+                              (subActivity, subIndex) => (
+                                <View
+                                  key={`sub-activity-${subIndex}`}
+                                  style={styles.subActivityItemContainer}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.subActivityItemName,
+                                      { color: colors.text },
+                                    ]}
+                                  >
+                                    {subActivity.name}
+                                  </Text>
+                                  {subActivity.description && (
+                                    <Text
+                                      style={[
+                                        styles.subActivityItemDescription,
+                                        { color: colors.text },
+                                      ]}
+                                    >
+                                      {subActivity.description}
+                                    </Text>
+                                  )}
+                                  <Text
+                                    style={[
+                                      styles.subActivityItemScore,
+                                      { color: colors.text },
+                                    ]}
+                                  >
+                                    {subActivity.average_score !== null
+                                      ? `Skor: ${subActivity.average_score.toFixed(
+                                          2
+                                        )}`
+                                      : "Belum dinilai"}
+                                  </Text>
+                                </View>
+                              )
+                            )}
+                            <View style={styles.subActivityCategorySummary}>
+                              <Text
+                                style={[
+                                  styles.subActivityCategorySummaryText,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                Total Sub Aktivitas:{" "}
+                                {categoryScore.total_sub_activities}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.subActivityCategorySummaryText,
+                                  { color: colors.text },
+                                ]}
+                              >
+                                Skor Kategori:{" "}
+                                {categoryScore.category_average_score !== null
+                                  ? categoryScore.category_average_score.toFixed(
+                                      2
+                                    )
+                                  : "Belum dinilai"}
+                              </Text>
+                            </View>
+                          </View>
+                        )
+                      )}
+
+                      {/* Overall Sub-Activity Summary */}
+                      <View style={styles.overallSubActivitySummary}>
+                        <Text
+                          style={[
+                            styles.overallSubActivitySummaryTitle,
+                            { color: colors.text },
+                          ]}
+                        >
+                          Ringkasan Aktivitas Tambahan
+                        </Text>
+                        <View style={styles.overallSubActivitySummaryDetails}>
+                          <Text
+                            style={[
+                              styles.overallSubActivitySummaryText,
+                              { color: colors.text },
+                            ]}
+                          >
+                            Total Sub Aktivitas Terpilih:{" "}
+                            {logbook.check_out.total_selected_sub_activities}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.overallSubActivitySummaryText,
+                              { color: colors.text },
+                            ]}
+                          >
+                            Total Sub Aktivitas Dinilai:{" "}
+                            {logbook.check_out.total_scored_sub_activities}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.overallSubActivitySummaryText,
+                              { color: colors.text },
+                            ]}
+                          >
+                            Total Skor Sub Aktivitas:{" "}
+                            {logbook.check_out.total_sub_activity_score !== null
+                              ? logbook.check_out.total_sub_activity_score.toFixed(
+                                  2
+                                )
+                              : "Belum dinilai"}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
               </View>
 
               {/* Verification Info */}
@@ -557,7 +911,10 @@ export default function LogbookVerificationScreen() {
                         <View key={index} style={styles.scoreContainer}>
                           <View style={styles.detailRow}>
                             <Text
-                              style={[styles.detailLabel, { color: colors.text }]}
+                              style={[
+                                styles.detailLabel,
+                                { color: colors.text },
+                              ]}
                             >
                               Verifikasi ke-
                               {(logbook.check_out.scores || []).length - index}
@@ -565,48 +922,72 @@ export default function LogbookVerificationScreen() {
                           </View>
                           <View style={styles.detailRow}>
                             <Text
-                              style={[styles.detailLabel, { color: colors.text }]}
+                              style={[
+                                styles.detailLabel,
+                                { color: colors.text },
+                              ]}
                             >
                               Nilai:
                             </Text>
                             <Text
-                              style={[styles.detailValue, { color: colors.text }]}
+                              style={[
+                                styles.detailValue,
+                                { color: colors.text },
+                              ]}
                             >
                               {score.score}
                             </Text>
                           </View>
                           <View style={styles.detailRow}>
                             <Text
-                              style={[styles.detailLabel, { color: colors.text }]}
+                              style={[
+                                styles.detailLabel,
+                                { color: colors.text },
+                              ]}
                             >
                               Catatan:
                             </Text>
                             <Text
-                              style={[styles.detailValue, { color: colors.text }]}
+                              style={[
+                                styles.detailValue,
+                                { color: colors.text },
+                              ]}
                             >
                               {score.note || "-"}
                             </Text>
                           </View>
                           <View style={styles.detailRow}>
                             <Text
-                              style={[styles.detailLabel, { color: colors.text }]}
+                              style={[
+                                styles.detailLabel,
+                                { color: colors.text },
+                              ]}
                             >
                               Diverifikasi oleh:
                             </Text>
                             <Text
-                              style={[styles.detailValue, { color: colors.text }]}
+                              style={[
+                                styles.detailValue,
+                                { color: colors.text },
+                              ]}
                             >
                               {score.advisor_name}
                             </Text>
                           </View>
                           <View style={styles.detailRow}>
                             <Text
-                              style={[styles.detailLabel, { color: colors.text }]}
+                              style={[
+                                styles.detailLabel,
+                                { color: colors.text },
+                              ]}
                             >
                               Tanggal:
                             </Text>
                             <Text
-                              style={[styles.detailValue, { color: colors.text }]}
+                              style={[
+                                styles.detailValue,
+                                { color: colors.text },
+                              ]}
                             >
                               {formatDate(score.scored_at)}
                             </Text>
@@ -919,4 +1300,77 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-}); 
+  subActivityScoresContainer: {
+    marginTop: 16,
+  },
+  subActivityCategoryContainer: {
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  subActivityCategoryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  subActivityCategoryName: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  subActivityCategoryPercentage: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  subActivityItemContainer: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  subActivityItemName: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  subActivityItemDescription: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 8,
+  },
+  subActivityItemScore: {
+    fontSize: 14,
+    color: "#555",
+  },
+  subActivityCategorySummary: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+  },
+  subActivityCategorySummaryText: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  overallSubActivitySummary: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+  },
+  overallSubActivitySummaryTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  overallSubActivitySummaryDetails: {
+    paddingLeft: 12,
+  },
+  overallSubActivitySummaryText: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+});
