@@ -139,15 +139,15 @@ export default function ProfileScreen() {
           gender: userInfo.gender || "",
           student_id: userInfo.student_id || "",
           group_id: userInfo.group_id || 0,
-          stase_id: userInfo.stase_id || 0
+          stase_id: userInfo.stace_id || 0  // Use stace_id from new API response
         });
 
         // Load stases
         if (token) {
           loadStases();
-          // If stase_id exists, load groups
-          if (userInfo.stase_id) {
-            loadGroups(userInfo.stase_id);
+          // If stace_id exists, load groups
+          if (userInfo.stace_id) {
+            loadGroups(userInfo.stace_id);
           }
         }
       } else if (role === "advisor") {
@@ -158,7 +158,7 @@ export default function ProfileScreen() {
           phone: userInfo.phone || "",
           birthday: userInfo.birthday || "",
           gender: userInfo.gender || "",
-          stase_id: userInfo.stase_id || 0,
+          stase_id: userInfo.stace_id || 0,  // Use stace_id from new API response
           type: userInfo.type || "clinic",
           npwp: userInfo.npwp || "",
           nip: userInfo.nip || "",
@@ -648,6 +648,80 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
+        {/* Current Group Information */}
+        {userInfo && (userInfo.stace_name || userInfo.group_name) && (
+          <Card title="Informasi Kelompok Saat Ini">
+            <View style={styles.formContainer}>
+              {userInfo.stace_name && (
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: colors.text }]}>Stase Aktif</Text>
+                  <View style={[
+                    styles.input,
+                    styles.disabledInput,
+                    { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }
+                  ]}>
+                    <Text style={[{ color: colors.text, fontSize: 16, lineHeight: 48 }]}>
+                      {userInfo.stace_name}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              
+              {userInfo.group_name && (
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: colors.text }]}>Kelompok Aktif</Text>
+                  <View style={[
+                    styles.input,
+                    styles.disabledInput,
+                    { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }
+                  ]}>
+                    <Text style={[{ color: colors.text, fontSize: 16, lineHeight: 48 }]}>
+                      {userInfo.group_name}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              
+              {userInfo.group_status && (
+                <View style={styles.inputRow}>
+                  <View style={[styles.inputColumn, { marginRight: 8 }]}>
+                    <Text style={[styles.label, { color: colors.text }]}>Status Kelompok</Text>
+                    <View style={[
+                      styles.input,
+                      styles.disabledInput,
+                      { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }
+                    ]}>
+                      <Text style={[{ 
+                        color: userInfo.group_status === 'running' ? colors.tint : colors.text, 
+                        fontSize: 16, 
+                        lineHeight: 48,
+                        fontWeight: userInfo.group_status === 'running' ? '600' : 'normal'
+                      }]}>
+                        {userInfo.group_status === 'running' ? 'Aktif' : userInfo.group_status}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  {userInfo.group_start_date && userInfo.group_end_date && (
+                    <View style={[styles.inputColumn, { marginLeft: 8 }]}>
+                      <Text style={[styles.label, { color: colors.text }]}>Periode</Text>
+                      <View style={[
+                        styles.input,
+                        styles.disabledInput,
+                        { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }
+                      ]}>
+                        <Text style={[{ color: colors.text, fontSize: 14, lineHeight: 48 }]}>
+                          {new Date(userInfo.group_start_date).toLocaleDateString('id-ID')} - {new Date(userInfo.group_end_date).toLocaleDateString('id-ID')}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          </Card>
+        )}
+
         <Card title="Informasi Akademik">
           <View style={styles.formContainer}>
             <View style={styles.formGroup}>
@@ -758,6 +832,45 @@ export default function ProfileScreen() {
         <Text style={[styles.formTitle, { color: colors.text }]}>
           Advisor Profile
         </Text>
+
+        {/* Current Group Information for Advisor */}
+        {userInfo && (
+          <Card title="Informasi Kelompok Saat Ini" style={{ marginBottom: 20 }}>
+            <View style={{ padding: 16 }}>
+              
+              <View style={{ marginBottom: 12 }}>
+                <Text style={[styles.label, { color: colors.text }]}>Stase Aktif</Text>
+                <Text style={[{ fontSize: 16, color: colors.text, fontWeight: '500' }]}>
+                  {userInfo.stace_name || 'Belum ada stase'}
+                </Text>
+              </View>
+              
+              <View style={{ marginBottom: 12 }}>
+                <Text style={[styles.label, { color: colors.text }]}>Kelompok Aktif</Text>
+                <Text style={[{ fontSize: 16, color: colors.text, fontWeight: '500' }]}>
+                  {userInfo.group_name || 'Belum ada kelompok'}
+                </Text>
+              </View>
+              
+              <View style={{ marginBottom: 12 }}>
+                <Text style={[styles.label, { color: colors.text }]}>Status Kelompok</Text>
+                <Text style={[{ fontSize: 16, color: colors.text, fontWeight: '500' }]}>
+                  {userInfo.group_status || 'Tidak diketahui'}
+                </Text>
+              </View>
+              
+              <View>
+                <Text style={[styles.label, { color: colors.text }]}>Periode</Text>
+                <Text style={[{ fontSize: 16, color: colors.text, fontWeight: '500' }]}>
+                  {userInfo.group_start_date && userInfo.group_end_date 
+                    ? `${formatDisplayDate(userInfo.group_start_date)} - ${formatDisplayDate(userInfo.group_end_date)}`
+                    : 'Belum ditentukan'
+                  }
+                </Text>
+              </View>
+            </View>
+          </Card>
+        )}
 
         <View style={styles.formGroup}>
           <Text style={[styles.label, { color: colors.text }]}>Name</Text>
@@ -1443,4 +1556,4 @@ const styles = StyleSheet.create({
     right: 12,
     padding: 4,
   },
-}); 
+});

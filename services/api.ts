@@ -27,7 +27,29 @@ export interface UserSessionData {
   username: string;
   email: string;
   role: UserRole;
+  user_id?: number;
   type?: string;
+  // Student specific fields
+  student_id?: string;
+  // Common fields for both student and advisor
+  stace_id?: number;
+  stace_name?: string;
+  group_id?: number;
+  group_name?: string;
+  group_status?: string;
+  group_start_date?: string;
+  group_end_date?: string;
+  // Advisor specific fields
+  position?: number;
+  phone?: string;
+  birthday?: string;
+  gender?: string;
+  // Academic advisor fields
+  npwp?: string;
+  nip?: string;
+  // Clinic advisor fields
+  location?: string;
+  room?: string;
   [key: string]: any; // Allow additional properties
 }
 
