@@ -579,7 +579,7 @@ export default function LaporanScreen() {
                         {/* Overall Sub-Activity Summary */}
                         <View style={styles.overallSubActivitySummary}>
                           <Text style={[styles.overallSubActivitySummaryTitle, { color: colors.text }]}>
-                            Ringkasan Aktivitas Tambahan
+                            Ringkasan Aktivitas
                           </Text>
                           <View style={styles.overallSubActivitySummaryDetails}>
                             <Text style={[styles.overallSubActivitySummaryText, { color: colors.text }]}>

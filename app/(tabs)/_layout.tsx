@@ -277,13 +277,84 @@ export default function TabLayout() {
       // Render clinic advisor tabs
       return (
         <Tabs screenOptions={commonTabScreenOptions}>
-          <Tabs.Screen name="verifikasi" />
-          <Tabs.Screen name="kunjungan" options={{ href: null }} />
-          <Tabs.Screen name="index" options={{ headerShown: false }} />
-          <Tabs.Screen name="kegiatan" options={{ href: null }} />
-          <Tabs.Screen name="panduan" />
-          <Tabs.Screen name="absensi" />
-          <Tabs.Screen name="penilaian" />
+          <Tabs.Screen
+            name="verifikasi"
+            options={{
+              title: "Verifikasi",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="checkmark-circle" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="kunjungan"
+            options={{
+              title: "Kunjungan",
+              href: null,
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="paper-plane" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: "Dashboard",
+              headerShown: false,
+              tabBarIcon: ({ color, size }) => (
+                <MaterialIcons name="dashboard" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="kegiatan"
+            options={{
+              title: "Kegiatan",
+              href: null,
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons
+                  name="file-document-edit-outline"
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="panduan"
+            options={{
+              title: "Panduan",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="document-outline" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="absensi"
+            options={{
+              title: "Absensi",
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons
+                  name="calendar-clock"
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="penilaian"
+            options={{
+              title: "Penilaian",
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons
+                  name="clipboard-list"
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
         </Tabs>
       );
     }

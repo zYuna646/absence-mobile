@@ -29,8 +29,26 @@ export interface UserSessionData {
   role: UserRole;
   user_id?: number;
   type?: string;
+  phone?: string;
+  birthday?: string;
+  gender?: string;
   // Student specific fields
   student_id?: string;
+  group?: {
+    id: number;
+    name: string;
+  };
+  stace?: {
+    id: number;
+    name: string;
+  };
+  advisors?: Array<{
+    id: number;
+    name: string;
+    type: string;
+    position: number;
+    position_type: string;
+  }>;
   // Common fields for both student and advisor
   stace_id?: number;
   stace_name?: string;
@@ -41,9 +59,7 @@ export interface UserSessionData {
   group_end_date?: string;
   // Advisor specific fields
   position?: number;
-  phone?: string;
-  birthday?: string;
-  gender?: string;
+  position_type?: string;
   // Academic advisor fields
   npwp?: string;
   nip?: string;
@@ -150,6 +166,7 @@ export interface StudentProfileUpdateData {
   gender: string;
   group_id: number;
   student_id: string;
+  user_id?: number;
 }
 
 // Advisor profile update data structure
@@ -162,6 +179,8 @@ export interface AdvisorProfileUpdateData {
   gender: string;
   stase_id: number;
   type: string; // "academic" or "clinic"
+  user_id?: number;
+  position_type?: string;
   // Fields for academic preceptor
   npwp?: string;
   nip?: string;

@@ -277,7 +277,7 @@ export default function PenilaianCreateScreen() {
         </Card>
 
         {/* Additional Activities */}
-        <Card title="Aktivitas Tambahan">
+        <Card title="Aktivitas">
           {loadingAdditional ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={colors.tint} />

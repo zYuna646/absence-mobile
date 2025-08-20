@@ -48,6 +48,7 @@ interface LogbookListItem {
   check_out_date: string;
   check_out_time: string;
   status: 'complete' | 'incomplete';
+  current_advisor_has_scored: boolean;
   scores?: Score[];
 }
 
@@ -450,6 +451,18 @@ export default function VerifikasiDetailScreen() {
                   </View>
                 </View>
               )}
+
+              {/* Verification Status */}
+              {logbook.current_advisor_has_scored && (
+                <View style={styles.verificationContainer}>
+                  <View style={styles.verificationBadge}>
+                    <Ionicons name="checkmark-circle" size={16} color={colors.success || "#28a745"} />
+                    <Text style={[styles.verificationText, { color: colors.success || "#28a745" }]}>
+                      Telah Diverifikasi
+                    </Text>
+                  </View>
+                </View>
+              )}
             </TouchableOpacity>
           ))
         )}
@@ -663,5 +676,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  verificationContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#00000010",
+  },
+  verificationBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: "rgba(40, 167, 69, 0.1)",
+    borderRadius: 16,
+  },
+  verificationText: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 6,
   },
 });

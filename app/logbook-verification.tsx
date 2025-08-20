@@ -45,10 +45,15 @@ interface CheckIn {
 }
 
 interface Score {
+  id: number;
   score: number;
   note: string;
   scored_at: string;
-  advisor_name: string;
+  advisor: {
+    id: number;
+    name: string;
+    type: string;
+  };
 }
 
 interface CheckOut {
@@ -71,7 +76,7 @@ interface CheckOut {
       id: number;
       name: string;
       description: string;
-      scores: any[];
+      scores: Score[];
       average_score: number | null;
       total_scores: number;
       has_score: boolean;
@@ -85,6 +90,7 @@ interface CheckOut {
   total_sub_activity_score: number | null;
   total_scored_sub_activities: number;
   total_selected_sub_activities: number;
+  current_advisor_has_scored?: boolean;
 }
 
 interface LogbookDetail {
@@ -236,18 +242,18 @@ export default function LogbookVerificationScreen() {
 
   // Get verification status text
   const getVerificationStatus = (): string => {
-    if (!logbook?.check_out?.scores || logbook.check_out.scores.length === 0) {
-      return "Belum Diverifikasi";
+    if (logbook?.check_out?.current_advisor_has_scored) {
+      return "Sudah Diverifikasi";
     }
-    return `Diverifikasi ${logbook.check_out.scores.length} kali`;
+    return "Belum Diverifikasi";
   };
 
   // Get verification status color
   const getVerificationStatusColor = (): string => {
-    if (!logbook?.check_out?.scores || logbook.check_out.scores.length === 0) {
-      return colors.warning || "#f59e0b";
+    if (logbook?.check_out?.current_advisor_has_scored) {
+      return colors.success || "#10b981";
     }
-    return colors.success || "#10b981";
+    return colors.warning || "#f59e0b";
   };
 
   // Render verification modal
@@ -459,6 +465,33 @@ export default function LogbookVerificationScreen() {
                                       }}
                                     />
                                   </View>
+                                  {subActivity.scores && subActivity.scores.length > 0 && (
+                                    <View style={styles.modalSection}>
+                                      <Text style={[styles.modalSectionTitle, { color: colors.text }]}>
+                                        Penilaian Sebelumnya
+                                      </Text>
+                                      {subActivity.scores.map((score, scoreIndex) => (
+                                        <View key={scoreIndex} style={[styles.modalInfoCard, { backgroundColor: colors.inputBackground }]}>
+                                          <View style={styles.modalInfoRow}>
+                                            <Text style={[styles.modalInfoLabel, { color: colors.text }]}>Skor:</Text>
+                                            <Text style={[styles.modalInfoValue, { color: colors.text }]}>{score.score}</Text>
+                                          </View>
+                                          <View style={styles.modalInfoRow}>
+                                            <Text style={[styles.modalInfoLabel, { color: colors.text }]}>Penasihat:</Text>
+                                            <Text style={[styles.modalInfoValue, { color: colors.text }]}>{score.advisor.name} ({score.advisor.type === 'academic' ? 'Akademik' : 'Klinik'})</Text>
+                                          </View>
+                                          <View style={styles.modalInfoRow}>
+                                            <Text style={[styles.modalInfoLabel, { color: colors.text }]}>Catatan:</Text>
+                                            <Text style={[styles.modalInfoValue, { color: colors.text }]}>{score.note || 'Tidak ada catatan'}</Text>
+                                          </View>
+                                          <View style={styles.modalInfoRow}>
+                                            <Text style={[styles.modalInfoLabel, { color: colors.text }]}>Tanggal:</Text>
+                                            <Text style={[styles.modalInfoValue, { color: colors.text }]}>{formatDate(score.scored_at)}</Text>
+                                          </View>
+                                        </View>
+                                      ))}
+                                    </View>
+                                  )}
                                 </View>
                               )
                             )}
@@ -490,50 +523,7 @@ export default function LogbookVerificationScreen() {
                         )
                       )}
 
-                      {/* Overall Sub-Activity Summary */}
-                      <View style={styles.overallSubActivitySummary}>
-                        <Text
-                          style={[
-                            styles.overallSubActivitySummaryTitle,
-                            { color: colors.text },
-                          ]}
-                        >
-                          Ringkasan Aktivitas Tambahan
-                        </Text>
-                        <View style={styles.overallSubActivitySummaryDetails}>
-                          <Text
-                            style={[
-                              styles.overallSubActivitySummaryText,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Total Sub Aktivitas Terpilih:{" "}
-                            {logbook.check_out.total_selected_sub_activities}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.overallSubActivitySummaryText,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Total Sub Aktivitas Dinilai:{" "}
-                            {logbook.check_out.total_scored_sub_activities}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.overallSubActivitySummaryText,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Total Skor Sub Aktivitas:{" "}
-                            {logbook.check_out.total_sub_activity_score !== null
-                              ? logbook.check_out.total_sub_activity_score.toFixed(
-                                  2
-                                )
-                              : "Belum dinilai"}
-                          </Text>
-                        </View>
-                      </View>
+
                     </View>
                   )}
               </View>
@@ -596,7 +586,19 @@ export default function LogbookVerificationScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detail Logbook</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Detail Logbook</Text>
+          <View style={styles.headerStatusContainer}>
+            <Ionicons 
+              name={logbook?.check_out?.current_advisor_has_scored ? "checkmark-circle" : "time-outline"} 
+              size={20} 
+              color="white" 
+            />
+            <Text style={styles.headerStatusText}>
+              {logbook?.check_out?.current_advisor_has_scored ? "Sudah Dinilai" : "Belum Dinilai"}
+            </Text>
+          </View>
+        </View>
         <View style={{ width: 24 }} />
       </View>
 
@@ -801,18 +803,48 @@ export default function LogbookVerificationScreen() {
                                       {subActivity.description}
                                     </Text>
                                   )}
-                                  <Text
-                                    style={[
-                                      styles.subActivityItemScore,
-                                      { color: colors.text },
-                                    ]}
-                                  >
-                                    {subActivity.average_score !== null
-                                      ? `Skor: ${subActivity.average_score.toFixed(
-                                          2
-                                        )}`
-                                      : "Belum dinilai"}
-                                  </Text>
+                                  <View>
+                                    <View style={styles.subActivityScoreRow}>
+                                      <Ionicons
+                                        name={subActivity.average_score !== null ? "checkmark-circle" : "ellipse-outline"}
+                                        size={16}
+                                        color={subActivity.average_score !== null ? colors.success || "#10b981" : colors.icon}
+                                        style={styles.scoreIcon}
+                                      />
+                                      <Text
+                                        style={[
+                                          styles.subActivityItemScore,
+                                          { 
+                                            color: subActivity.average_score !== null ? colors.success || "#10b981" : colors.text,
+                                            fontWeight: subActivity.average_score !== null ? "600" : "normal"
+                                          },
+                                        ]}
+                                      >
+                                        {subActivity.average_score !== null
+                                          ? `Skor: ${subActivity.average_score.toFixed(2)}`
+                                          : "Belum dinilai"}
+                                      </Text>
+                                    </View>
+                                    {subActivity.scores && subActivity.scores.length > 0 && (
+                                      <View style={styles.scoreDetailsContainer}>
+                                        {subActivity.scores.map((score, scoreIndex) => (
+                                          <View key={scoreIndex} style={styles.scoreDetailContainer}>
+                                            <Text style={[styles.scoreDetailText, { color: colors.text }]}>
+                                              • {score.advisor.name} ({score.advisor.type === 'academic' ? 'Akademik' : 'Klinik'}): {score.score}
+                                            </Text>
+                                            {score.note && (
+                                              <Text style={[styles.scoreNoteText, { color: colors.text }]}>
+                                                Catatan: {score.note}
+                                              </Text>
+                                            )}
+                                            <Text style={[styles.scoreDateText, { color: colors.text }]}>
+                                              {formatDate(score.scored_at)}
+                                            </Text>
+                                          </View>
+                                        ))}
+                                      </View>
+                                    )}
+                                  </View>
                                 </View>
                               )
                             )}
@@ -844,50 +876,7 @@ export default function LogbookVerificationScreen() {
                         )
                       )}
 
-                      {/* Overall Sub-Activity Summary */}
-                      <View style={styles.overallSubActivitySummary}>
-                        <Text
-                          style={[
-                            styles.overallSubActivitySummaryTitle,
-                            { color: colors.text },
-                          ]}
-                        >
-                          Ringkasan Aktivitas Tambahan
-                        </Text>
-                        <View style={styles.overallSubActivitySummaryDetails}>
-                          <Text
-                            style={[
-                              styles.overallSubActivitySummaryText,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Total Sub Aktivitas Terpilih:{" "}
-                            {logbook.check_out.total_selected_sub_activities}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.overallSubActivitySummaryText,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Total Sub Aktivitas Dinilai:{" "}
-                            {logbook.check_out.total_scored_sub_activities}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.overallSubActivitySummaryText,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Total Skor Sub Aktivitas:{" "}
-                            {logbook.check_out.total_sub_activity_score !== null
-                              ? logbook.check_out.total_sub_activity_score.toFixed(
-                                  2
-                                )
-                              : "Belum dinilai"}
-                          </Text>
-                        </View>
-                      </View>
+
                     </View>
                   )}
               </View>
@@ -971,7 +960,7 @@ export default function LogbookVerificationScreen() {
                                 { color: colors.text },
                               ]}
                             >
-                              {score.advisor_name}
+                              {score.advisor.name} ({score.advisor.type === 'academic' ? 'Akademik' : 'Klinik'})
                             </Text>
                           </View>
                           <View style={styles.detailRow}>
@@ -997,28 +986,53 @@ export default function LogbookVerificationScreen() {
                   </>
                 ) : (
                   <View style={styles.emptyVerification}>
-                    <Text style={[styles.emptyText, { color: colors.icon }]}>
+                    {/* <Text style={[styles.emptyText, { color: colors.icon }]}>
                       Belum ada verifikasi
-                    </Text>
+                    </Text> */}
                   </View>
                 )}
 
-                {/* Verification Button - show for advisor role always */}
+                {/* Verification Status */}
+                {/* {logbook?.check_out?.current_advisor_has_scored && (
+                  <View style={[
+                    styles.statusContainer,
+                    { backgroundColor: colors.success || "#10b981" }
+                  ]}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={16}
+                      color="white"
+                      style={styles.actionIcon}
+                    />
+                    <Text style={[styles.statusText, { color: "white" }]}>
+                      Telah Diverifikasi
+                    </Text>
+                  </View>
+                )} */}
+
+                {/* Verification Button - show for advisor role */}
                 {role === "advisor" && (
                   <TouchableOpacity
                     style={[
                       styles.verifyButton,
-                      { backgroundColor: colors.tint },
+                      {
+                        backgroundColor: logbook?.check_out?.current_advisor_has_scored
+                          ? "#9ca3af"
+                          : colors.tint,
+                      },
                     ]}
                     onPress={() => setShowVerifyModal(true)}
+                    disabled={logbook?.check_out?.current_advisor_has_scored}
                   >
                     <Ionicons
-                      name="checkmark-circle-outline"
+                      name={logbook?.check_out?.current_advisor_has_scored ? "checkmark-circle" : "checkmark-circle-outline"}
                       size={18}
                       color="white"
                       style={styles.actionIcon}
                     />
-                    <Text style={styles.verifyButtonText}>Verifikasi</Text>
+                    <Text style={styles.verifyButtonText}>
+                      {logbook?.check_out?.current_advisor_has_scored ? "Sudah Diverifikasi" : "Verifikasi"}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1056,10 +1070,25 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
     color: "white",
+  },
+  headerStatusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  headerStatusText: {
+    fontSize: 12,
+    color: "white",
+    marginLeft: 4,
+    opacity: 0.9,
   },
   backButton: {
     padding: 8,
@@ -1345,6 +1374,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#555",
   },
+  subActivityScoreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  scoreIcon: {
+    marginRight: 6,
+  },
   subActivityCategorySummary: {
     marginTop: 8,
     paddingTop: 8,
@@ -1355,22 +1391,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 4,
   },
-  overallSubActivitySummary: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+  scoreDetailsContainer: {
+    marginTop: 8,
+    paddingLeft: 16,
   },
-  overallSubActivitySummaryTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
+  scoreDetailContainer: {
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
-  overallSubActivitySummaryDetails: {
-    paddingLeft: 12,
+  scoreDetailText: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 2,
   },
-  overallSubActivitySummaryText: {
-    fontSize: 14,
-    marginBottom: 4,
+  scoreNoteText: {
+    fontSize: 11,
+    fontStyle: "italic",
+    marginBottom: 2,
+    paddingLeft: 8,
   },
+  scoreDateText: {
+    fontSize: 10,
+    opacity: 0.7,
+    paddingLeft: 8,
+  },
+
 });

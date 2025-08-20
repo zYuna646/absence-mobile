@@ -575,7 +575,7 @@ export default function LogbookScreen() {
           {mode === "checkout" && (
             <View style={styles.formGroup}>
               <View style={styles.additionalActivitiesHeader}>
-                <Text style={[styles.label, { color: colors.text, flex: 1 }]}>Aktivitas Tambahan</Text>
+                <Text style={[styles.label, { color: colors.text, flex: 1 }]}>Aktivitas</Text>
                 <TouchableOpacity
                   style={[styles.addButton, { backgroundColor: colors.tint }]}
                   onPress={() => {
@@ -938,4 +938,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-}); 
+});

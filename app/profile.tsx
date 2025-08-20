@@ -280,6 +280,7 @@ export default function ProfileScreen() {
     }
   };
 
+console.log(userInfo);
   // Format date for API
   const formatDate = (date: Date): string => {
     const day = String(date.getDate()).padStart(2, "0");
