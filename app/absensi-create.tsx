@@ -345,8 +345,8 @@ export default function AbsensiCreateScreen() {
             handleSelectActivity(item);
           } else {
             Alert.alert(
-              "Kegiatan Tertutup",
-              "Kegiatan ini sedang tertutup dan tidak dapat dipilih untuk absensi."
+              "Ruangan Tertutup",
+              "Ruangan ini sedang tertutup dan tidak dapat dipilih untuk absensi."
             );
           }
         }}
@@ -400,7 +400,7 @@ export default function AbsensiCreateScreen() {
             { color: colors.error || "#dc3545" }
           ]}>
             <Ionicons name="information-circle" size={12} color={colors.error || "#dc3545"} />
-            {" "}Kegiatan tidak tersedia untuk absensi
+            {" "}Ruangan tidak tersedia untuk absensi
           </Text>
         )}
       </TouchableOpacity>
@@ -410,15 +410,15 @@ export default function AbsensiCreateScreen() {
   // Handle form submission
   const handleSubmit = () => {
     if (!selectedActivity && mode !== "checkout") {
-      Alert.alert("Error", "Pilih kegiatan terlebih dahulu");
+      Alert.alert("Error", "Pilih ruangan terlebih dahulu");
       return;
     }
 
     // Check if selected activity is locked for check-in
     if (mode !== "checkout" && selectedActivity?.is_lock === 1) {
       Alert.alert(
-        "Kegiatan Tertutup",
-        "Kegiatan yang dipilih sedang tertutup. Tidak dapat melakukan check-in."
+        "Ruangan Tertutup",
+        "Ruangan yang dipilih sedang tertutup. Tidak dapat melakukan check-in."
       );
       return;
     }
@@ -516,12 +516,12 @@ export default function AbsensiCreateScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Activity Selection - Only show for check-in */}
         {mode !== "checkout" && (
-          <Card title="Pilih Kegiatan">
+          <Card title="Pilih Ruangan">
             {loadingActivities ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={colors.tint} />
                 <Text style={[styles.loadingText, { color: colors.text }]}>
-                  Memuat daftar kegiatan...
+                  Memuat daftar ruangan...
                 </Text>
               </View>
             ) : (
@@ -542,7 +542,7 @@ export default function AbsensiCreateScreen() {
                       { color: selectedActivity ? colors.text : colors.icon }
                     ]}
                   >
-                    {selectedActivity ? selectedActivity.name : "Pilih Kegiatan"}
+                    {selectedActivity ? selectedActivity.name : "Pilih Ruangan"}
                   </Text>
                   <Ionicons 
                     name="chevron-down" 
@@ -739,7 +739,7 @@ export default function AbsensiCreateScreen() {
       {/* Activity Selector Modal */}
       <BottomSheetSelector
         visible={showActivityModal}
-        title="Pilih Kegiatan"
+        title="Pilih Ruangan"
         items={activities.map(activity => ({
           id: activity.id,
           name: activity.name,
@@ -747,7 +747,7 @@ export default function AbsensiCreateScreen() {
         }))}
         selectedId={selectedActivity?.id}
         loading={loadingActivities}
-        emptyText="Tidak ada kegiatan tersedia"
+        emptyText="Tidak ada ruangan tersedia"
         onSelect={(item) => {
           const selectedActivity = activities.find(a => a.id === item.id);
           if (selectedActivity) {
@@ -959,4 +959,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: 'italic',
   },
-}); 
+});

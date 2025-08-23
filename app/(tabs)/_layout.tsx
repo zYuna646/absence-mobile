@@ -105,7 +105,7 @@ export default function TabLayout() {
               lib: "ion",
             },
             {
-              label: "Kegiatan",
+              label: "Ruangan",
               route: "/kegiatan",
               icon: "file-document-edit-outline",
               lib: "mci",
@@ -143,7 +143,7 @@ export default function TabLayout() {
               lib: "ion",
             },
             {
-              label: "Kegiatan",
+              label: "Ruangan",
               route: "/kegiatan",
               icon: "file-document-edit-outline",
               lib: "mci",
@@ -260,13 +260,86 @@ export default function TabLayout() {
   if (role === "student") {
     return (
       <Tabs screenOptions={commonTabScreenOptions}>
-        <Tabs.Screen name="kunjungan" options={{ href: null }} />
-        <Tabs.Screen name="kegiatan" />
-        <Tabs.Screen name="index" options={{ headerShown: false }} />
-        <Tabs.Screen name="panduan" />
-        <Tabs.Screen name="verifikasi" options={{ href: null }} />
-        <Tabs.Screen name="absensi" options={{ href: null }} />
-        <Tabs.Screen name="penilaian" options={{ href: null }} />
+        <Tabs.Screen 
+          name="kunjungan" 
+          options={{ 
+            href: null,
+            title: "Kunjungan",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="paper-plane" size={size} color={color} />
+            ),
+          }} 
+        />
+        <Tabs.Screen 
+          name="kegiatan" 
+          options={{ 
+            title: "Ruangan",
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="file-document-edit-outline"
+                size={size}
+                color={color}
+              />
+            ),
+          }} 
+        />
+        <Tabs.Screen 
+          name="index" 
+          options={{ 
+            headerShown: false,
+            title: "Dashboard",
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="dashboard" size={size} color={color} />
+            ),
+          }} 
+        />
+        <Tabs.Screen 
+          name="panduan" 
+          options={{ 
+            title: "Panduan",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="document-outline" size={size} color={color} />
+            ),
+          }} 
+        />
+        <Tabs.Screen 
+          name="verifikasi" 
+          options={{ 
+            href: null,
+            title: "Verifikasi",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="checkmark-circle" size={size} color={color} />
+            ),
+          }} 
+        />
+        <Tabs.Screen 
+          name="absensi" 
+          options={{ 
+            href: null,
+            title: "Absensi",
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="calendar-clock"
+                size={size}
+                color={color}
+              />
+            ),
+          }} 
+        />
+        <Tabs.Screen 
+          name="penilaian" 
+          options={{ 
+            href: null,
+            title: "Penilaian",
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons
+                name="clipboard-list"
+                size={size}
+                color={color}
+              />
+            ),
+          }} 
+        />
       </Tabs>
     );
   } else if (role === "advisor") {
@@ -309,7 +382,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="kegiatan"
             options={{
-              title: "Kegiatan",
+              title: "Ruangan",
               href: null,
               tabBarIcon: ({ color, size }) => (
                 <MaterialCommunityIcons
@@ -394,7 +467,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="kegiatan"
           options={{
-            title: "Kegiatan",
+            title: "Ruangan",
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="file-document-edit-outline"

@@ -257,7 +257,7 @@ export default function VerifikasiDetailScreen() {
             { color: colors.warning || "#ffc107" }
           ]}>
             <Ionicons name="information-circle" size={12} color={colors.warning || "#ffc107"} />
-            {" "}Kegiatan sedang tertutup
+            {" "}Ruangan sedang tertutup
           </Text>
         )}
       </TouchableOpacity>
@@ -332,7 +332,7 @@ export default function VerifikasiDetailScreen() {
         }
       >
         {/* Activity Selector */}
-        <Card title="Pilih Kegiatan">
+        <Card title="Pilih Ruangan">
           <TouchableOpacity
             style={[
               styles.activitySelector,
@@ -349,7 +349,7 @@ export default function VerifikasiDetailScreen() {
                 flex: 1,
               }}
             >
-              {selectedActivity ? selectedActivity.name : "Pilih kegiatan"}
+              {selectedActivity ? selectedActivity.name : "Pilih ruangan"}
             </Text>
             <Ionicons name="chevron-down" size={20} color={colors.icon} />
           </TouchableOpacity>
@@ -362,8 +362,8 @@ export default function VerifikasiDetailScreen() {
             <View style={styles.emptyContainer}>
               <Ionicons name="document-outline" size={48} color={colors.icon} />
               <Text style={[styles.emptyText, { color: colors.text }]}>
-                Pilih kegiatan terlebih dahulu
-              </Text>
+                  Pilih ruangan terlebih dahulu
+                </Text>
             </View>
           </Card>
         ) : !logbooks || logbooks.length === 0 ? (
@@ -453,16 +453,23 @@ export default function VerifikasiDetailScreen() {
               )}
 
               {/* Verification Status */}
-              {logbook.current_advisor_has_scored && (
-                <View style={styles.verificationContainer}>
+              <View style={styles.verificationContainer}>
+                {logbook.current_advisor_has_scored ? (
                   <View style={styles.verificationBadge}>
                     <Ionicons name="checkmark-circle" size={16} color={colors.success || "#28a745"} />
                     <Text style={[styles.verificationText, { color: colors.success || "#28a745" }]}>
                       Telah Diverifikasi
                     </Text>
                   </View>
-                </View>
-              )}
+                ) : (
+                  <View style={[styles.verificationBadge, { backgroundColor: "rgba(108, 117, 125, 0.1)" }]}>
+                    <Ionicons name="time-outline" size={16} color={colors.icon || "#6c757d"} />
+                    <Text style={[styles.verificationText, { color: colors.icon || "#6c757d" }]}>
+                      Belum Diverifikasi
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           ))
         )}
@@ -471,7 +478,7 @@ export default function VerifikasiDetailScreen() {
       {/* Activity Selector Modal */}
       <BottomSheetSelector
         visible={showActivitySelector}
-        title="Pilih Kegiatan"
+        title="Pilih Ruangan"
         items={activities.map(activity => ({
           id: activity.id,
           name: activity.name,
@@ -479,7 +486,7 @@ export default function VerifikasiDetailScreen() {
         }))}
         selectedId={selectedActivity?.id}
         loading={loadingActivities}
-        emptyText="Tidak ada kegiatan tersedia"
+        emptyText="Tidak ada ruangan tersedia"
         onSelect={(item) => {
           const selectedActivity = activities.find(a => a.id === item.id);
           if (selectedActivity) {

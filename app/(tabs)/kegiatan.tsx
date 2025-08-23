@@ -64,11 +64,11 @@ export default function KegiatanScreen() {
         setActivities(response.data);
         setFilteredActivities(response.data);
       } else {
-        Alert.alert("Error", response.message || "Failed to load activities");
+        Alert.alert("Error", response.message || "Gagal memuat ruangan");
       }
     } catch (error) {
       console.error("Error loading activities:", error);
-      Alert.alert("Error", "Failed to load activities");
+      Alert.alert("Error", "Gagal memuat ruangan");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -192,7 +192,7 @@ export default function KegiatanScreen() {
       const response = await api.createActivity(token, formData);
       
       if (response.success) {
-        Alert.alert("Success", "Activity created successfully");
+        Alert.alert("Success", "Ruangan berhasil dibuat");
         setFormData({
           name: "",
           indicators: "",
@@ -201,11 +201,11 @@ export default function KegiatanScreen() {
         setShowForm(false);
         loadActivities();
       } else {
-        Alert.alert("Error", response.message || "Failed to create activity");
+        Alert.alert("Error", response.message || "Gagal membuat ruangan");
       }
     } catch (error) {
       console.error("Error creating activity:", error);
-      Alert.alert("Error", "Failed to create activity");
+      Alert.alert("Error", "Gagal membuat ruangan");
     } finally {
       setSubmitting(false);
     }
@@ -237,14 +237,14 @@ export default function KegiatanScreen() {
       // TODO: Implement the actual API call when available
       setTimeout(() => {
         // Simulate successful update
-        Alert.alert("Success", "Activity updated successfully");
+        Alert.alert("Success", "Ruangan berhasil diperbarui");
         setShowEditModal(false);
         loadActivities(); // Reload activities to get the updated data
         setUpdating(false);
       }, 1000);
     } catch (error) {
       console.error("Error updating activity:", error);
-      Alert.alert("Error", "Failed to update activity");
+      Alert.alert("Error", "Gagal memperbarui ruangan");
       setUpdating(false);
     }
   };
@@ -298,11 +298,11 @@ export default function KegiatanScreen() {
     
     const actionText = action === 'unlock' ? 'Buka' : 'Tutup';
     const message = action === 'unlock' 
-      ? 'Membuka kegiatan akan memungkinkan mahasiswa untuk membuat logbook baru.'
-      : 'Menutup kegiatan akan mencegah mahasiswa membuat logbook baru.';
+      ? 'Membuka ruangan akan memungkinkan mahasiswa untuk membuat logbook baru.'
+      : 'Menutup ruangan akan mencegah mahasiswa membuat logbook baru.';
     
     Alert.alert(
-      `${actionText} Kegiatan`,
+      `${actionText} Ruangan`,
       message + ' Lanjutkan?',
       [
         { text: "Batal", style: "cancel" },
@@ -318,7 +318,7 @@ export default function KegiatanScreen() {
                 : await api.lockActivity(token, activity.id);
               
               if (response.success) {
-                Alert.alert("Success", `Kegiatan berhasil di${action === 'unlock' ? 'buka' : 'tutup'}`);
+                Alert.alert("Success", `Ruangan berhasil di${action === 'unlock' ? 'buka' : 'tutup'}`);
                 // Reload activities to get updated status
                 loadActivities();
               } else {
@@ -503,7 +503,7 @@ export default function KegiatanScreen() {
           <Ionicons name="search" size={20} color={colors.icon} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Cari kegiatan..."
+            placeholder="Cari ruangan..."
             placeholderTextColor={colors.icon}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -518,10 +518,10 @@ export default function KegiatanScreen() {
       
       {/* Create form (visible only for advisors) */}
       {role === "advisor" && showForm && (
-        <Card title="Tambah Kegiatan Baru">
+        <Card title="Tambah Ruangan Baru">
           <View style={styles.form}>
             <View style={styles.formGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Nama Kegiatan</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Nama Ruangan</Text>
               <TextInput
                 style={[
                   styles.input,
@@ -531,7 +531,7 @@ export default function KegiatanScreen() {
                     borderColor: colors.inputBorder
                   }
                 ]}
-                placeholder="Masukkan nama kegiatan"
+                placeholder="Masukkan nama ruangan"
                 placeholderTextColor={colors.icon}
                 value={formData.name}
                 onChangeText={(text) => handleInputChange("name", text)}
@@ -586,7 +586,7 @@ export default function KegiatanScreen() {
             </View>
             
             <PrimaryButton
-              label="Simpan Kegiatan"
+              label="Simpan Ruangan"
               onPress={handleSubmit}
               loading={submitting}
               disabled={submitting}
@@ -601,7 +601,7 @@ export default function KegiatanScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.tint} />
           <Text style={[styles.loadingText, { color: colors.text }]}>
-            Loading activities...
+            Memuat ruangan...
           </Text>
         </View>
       ) : (
@@ -627,8 +627,8 @@ export default function KegiatanScreen() {
               />
               <Text style={[styles.emptyText, { color: colors.text }]}>
                 {searchQuery.length > 0 
-                  ? "No activities match your search" 
-                  : "No activities found"}
+                  ? "Tidak ada ruangan yang sesuai dengan pencarian" 
+                  : "Tidak ada ruangan ditemukan"}
               </Text>
             </View>
           )}
@@ -680,15 +680,15 @@ export default function KegiatanScreen() {
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={colors.tint} />
                 <Text style={[styles.loadingText, { color: colors.text }]}>
-                  Loading clinic advisors...
+                  Memuat pembimbing klinik...
                 </Text>
               </View>
             ) : clinicAdvisors.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyText, { color: colors.text }]}>
-                  No clinic advisors found
-                </Text>
-              </View>
+                  <Text style={[styles.emptyText, { color: colors.text }]}>
+                    Tidak ada pembimbing klinik ditemukan
+                  </Text>
+                </View>
             ) : showEditModal ? (
               <FlatList
                 data={clinicAdvisors}
@@ -719,7 +719,7 @@ export default function KegiatanScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {role === "advisor" ? "Edit Kegiatan" : "Detail Kegiatan"}
+                {role === "advisor" ? "Edit Ruangan" : "Detail Ruangan"}
               </Text>
               <TouchableOpacity onPress={() => setShowEditModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
@@ -729,7 +729,7 @@ export default function KegiatanScreen() {
             <ScrollView style={styles.editModalScroll}>
               <View style={styles.form}>
                 <View style={styles.formGroup}>
-                  <Text style={[styles.label, { color: colors.text }]}>Nama Kegiatan</Text>
+                  <Text style={[styles.label, { color: colors.text }]}>Nama Ruangan</Text>
                   <TextInput
                     style={[
                       styles.input,
@@ -739,7 +739,7 @@ export default function KegiatanScreen() {
                         borderColor: colors.inputBorder
                       }
                     ]}
-                    placeholder="Nama kegiatan"
+                    placeholder="Nama ruangan"
                     placeholderTextColor={colors.icon}
                     value={editFormData.name}
                     onChangeText={(text) => handleEditInputChange("name", text)}
@@ -817,7 +817,7 @@ export default function KegiatanScreen() {
                 
                 {role === "advisor" && (
                   <PrimaryButton
-                    label="Update Kegiatan"
+                    label="Update Ruangan"
                     onPress={handleUpdate}
                     loading={updating}
                     disabled={updating}

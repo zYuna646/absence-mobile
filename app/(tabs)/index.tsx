@@ -154,9 +154,7 @@ export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const colors = useThemeColor();
   const { role, userInfo, token, logout } = useUser();
-  const [notifications, setNotifications] = useState<Notification[]>(
-    getSampleNotifications()
-  );
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -167,12 +165,39 @@ export default function DashboardScreen() {
 
   // Format date helper function
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+    if (!dateString) return "";
+    
+    try {
+      // Handle both ISO format and dd-mm-yyyy format
+      let date;
+      if (dateString.includes('-') && dateString.split('-').length === 3) {
+        // Check if it's in dd-mm-yyyy format
+        const parts = dateString.split('-');
+        if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+          // It's likely dd-mm-yyyy
+          date = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+        } else {
+          // Assume it's ISO format or similar
+          date = new Date(dateString);
+        }
+      } else {
+        // Default to standard parsing
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) {
+        throw new Error("Invalid date");
+      }
+      
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return dateString;
+    }
   };
 
   // Fetch statistics when component mounts
@@ -428,14 +453,6 @@ export default function DashboardScreen() {
   const renderStudentGroupInfo = () => {
     if (role !== "student" || !userInfo) return null;
 
-    const formatDate = (dateString: string) => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-    };
 
     return (
       <>
@@ -443,11 +460,11 @@ export default function DashboardScreen() {
           <View style={styles.groupInfoContainer}>
             <View style={styles.groupInfoRow}>
               <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Stase</Text>
-              <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.stace_name}</Text>
+              <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.stace?.name || userInfo.stace_name || '-'}</Text>
             </View>
             <View style={styles.groupInfoRow}>
               <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Kelompok</Text>
-              <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.group_name}</Text>
+              <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.group?.name || userInfo.group_name || '-'}</Text>
             </View>
             <View style={styles.groupInfoRow}>
               <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Periode</Text>
@@ -458,6 +475,23 @@ export default function DashboardScreen() {
                 }
               </Text>
             </View>
+            <View style={styles.groupInfoRow}>
+              <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Status</Text>
+              <Text style={[styles.groupInfoValue, { color: userInfo.group_status === "running" ? colors.success : colors.error }]}>
+                {userInfo.group_status === "running" ? "Aktif" : "Tidak Aktif"}
+              </Text>
+            </View>
+            {userInfo.advisors && userInfo.advisors.length > 0 && userInfo.advisors.map((advisor) => {
+              if (advisor.type === "academic") {
+                return (
+                  <View key={advisor.id} style={styles.groupInfoRow}>
+                    <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Pembimbing Akademik</Text>
+                    <Text style={[styles.groupInfoValue, { color: colors.text }]}>{advisor.name || '-'}</Text>
+                  </View>
+                );
+              }
+              return null;
+            })}
             {userInfo.group_status !== "running" && (
               <View style={[styles.warningContainer, { backgroundColor: colors.error + '20' }]}>
                 <Ionicons name="warning" size={20} color={colors.error} />
@@ -466,6 +500,43 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             )}
+          </View>
+        </Card>
+      </>
+    );
+  };
+
+  // Render advisor group info
+  const renderAdvisorGroupInfo = () => {
+    if (role !== "advisor" || !userInfo) return null;
+
+    return (
+      <>
+        <Card title="Informasi Kelompok">
+          <View style={styles.groupInfoContainer}>
+            <View style={styles.groupInfoRow}>
+              <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Stase Aktif</Text>
+              <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.stace?.name || userInfo.stace_name || 'Belum ada stase'}</Text>
+            </View>
+            <View style={styles.groupInfoRow}>
+              <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Kelompok Aktif</Text>
+              <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.group?.name || userInfo.group_name || 'Belum ada kelompok'}</Text>
+            </View>
+            <View style={styles.groupInfoRow}>
+              <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Status Kelompok</Text>
+              <Text style={[styles.groupInfoValue, { color: userInfo.group_status === "running" ? colors.success : colors.error }]}>
+                {userInfo.group_status === "running" ? "Aktif" : "Tidak Aktif"}
+              </Text>
+            </View>
+            <View style={styles.groupInfoRow}>
+              <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Periode</Text>
+              <Text style={[styles.groupInfoValue, { color: colors.text }]}>
+                {userInfo.group_start_date && userInfo.group_end_date ? 
+                  `${formatDate(userInfo.group_start_date)} - ${formatDate(userInfo.group_end_date)}` :
+                  'Belum ditentukan'
+                }
+              </Text>
+            </View>
           </View>
         </Card>
       </>
@@ -559,6 +630,7 @@ export default function DashboardScreen() {
 
         return (
           <View style={styles.roleContent}>
+            {renderAdvisorGroupInfo()}
             <Card title="Ringkasan Aktivitas">
               <StatisticRow
                 items={[
@@ -690,11 +762,11 @@ export default function DashboardScreen() {
             <View style={styles.groupInfoContainer}>
               <View style={styles.groupInfoRow}>
                 <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Stase</Text>
-                <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.stace_name}</Text>
+                <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.group?.name || '-'}</Text>
               </View>
               <View style={styles.groupInfoRow}>
                 <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Kelompok</Text>
-                <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.group_name}</Text>
+                <Text style={[styles.groupInfoValue, { color: colors.text }]}>{userInfo.stace?.name|| '-'}</Text>
               </View>
               <View style={styles.groupInfoRow}>
                 <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Periode</Text>
@@ -705,6 +777,23 @@ export default function DashboardScreen() {
                   }
                 </Text>
               </View>
+              <View style={styles.groupInfoRow}>
+                <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Status</Text>
+                <Text style={[styles.groupInfoValue, { color: userInfo.group_status === "running" ? colors.success : colors.error }]}>
+                  {userInfo.group_status === "running" ? "Aktif" : "Tidak Aktif"}
+                </Text>
+              </View>
+              {userInfo.advisors && userInfo.advisors.length > 0 && userInfo.advisors.map((advisor) => {
+                if (advisor.type === "academic") {
+                  return (
+                    <View key={advisor.id} style={styles.groupInfoRow}>
+                      <Text style={[styles.groupInfoLabel, { color: colors.text }]}>Pembimbing Akademik</Text>
+                      <Text style={[styles.groupInfoValue, { color: colors.text }]}>{advisor.name || '-'}</Text>
+                    </View>
+                  );
+                }
+                return null;
+              })}
               {userInfo.group_status !== "running" && (
                 <View style={[styles.warningContainer, { backgroundColor: colors.error + '20' }]}>
                   <Ionicons name="warning" size={20} color={colors.error} />
@@ -739,36 +828,7 @@ export default function DashboardScreen() {
   );
 }
 
-// Sample data for notifications
-function getSampleNotifications(): Notification[] {
-  return [
-    {
-      id: "1",
-      title: "Kunjungan Diverifikasi",
-      message: "Kunjungan Anda ke PT. Teknologi Indonesia telah diverifikasi.",
-      time: "2 jam yang lalu",
-      read: false,
-      type: "success",
-    },
-    {
-      id: "2",
-      title: "Pengingat Kunjungan",
-      message:
-        "Anda memiliki kunjungan ke PT. Maju Bersama besok pukul 10:00 WIB.",
-      time: "5 jam yang lalu",
-      read: false,
-      type: "info",
-    },
-    {
-      id: "3",
-      title: "Permintaan Revisi",
-      message: "Dosen pembimbing meminta revisi laporan kunjungan Anda.",
-      time: "Kemarin, 16:30",
-      read: true,
-      type: "warning",
-    },
-  ];
-}
+// Notification function removed
 
 const styles = StyleSheet.create({
   container: {
@@ -819,12 +879,13 @@ const styles = StyleSheet.create({
   },
   groupInfoLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   groupInfoValue: {
     fontSize: 14,
     flex: 1,
     textAlign: 'right',
+    fontWeight: '400',
   },
   warningContainer: {
     flexDirection: 'row',
@@ -837,5 +898,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     flex: 1,
+    fontWeight: '500',
   },
 });

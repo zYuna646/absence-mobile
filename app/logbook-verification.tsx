@@ -242,7 +242,10 @@ export default function LogbookVerificationScreen() {
 
   // Get verification status text
   const getVerificationStatus = (): string => {
-    if (logbook?.check_out?.current_advisor_has_scored) {
+    if (!logbook?.check_out) {
+      return "Belum Selesai";
+    }
+    if (logbook.check_out.current_advisor_has_scored) {
       return "Sudah Diverifikasi";
     }
     return "Belum Diverifikasi";
@@ -250,7 +253,10 @@ export default function LogbookVerificationScreen() {
 
   // Get verification status color
   const getVerificationStatusColor = (): string => {
-    if (logbook?.check_out?.current_advisor_has_scored) {
+    if (!logbook?.check_out) {
+      return colors.error || "#ef4444";
+    }
+    if (logbook.check_out.current_advisor_has_scored) {
       return colors.success || "#10b981";
     }
     return colors.warning || "#f59e0b";
@@ -707,7 +713,7 @@ export default function LogbookVerificationScreen() {
                     Waktu:
                   </Text>
                   <Text style={[styles.detailValue, { color: colors.text }]}>
-                    {formatTime(logbook.check_out.check_time)}
+                    {logbook.check_out?.check_time ? formatTime(logbook.check_out.check_time) : "-"}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
@@ -715,10 +721,10 @@ export default function LogbookVerificationScreen() {
                     Lokasi:
                   </Text>
                   <Text style={[styles.detailValue, { color: colors.text }]}>
-                    {logbook.check_out.address}
+                    {logbook.check_out?.address || "-"}
                   </Text>
                 </View>
-                {logbook.check_out.description && (
+                {logbook.check_out?.description && (
                   <View>
                     <Text
                       style={[
@@ -735,16 +741,18 @@ export default function LogbookVerificationScreen() {
                     </Text>
                   </View>
                 )}
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={{ uri: logbook.check_out.photo }}
-                    style={styles.detailPhoto}
-                    resizeMode="cover"
-                  />
-                </View>
+                {logbook.check_out?.photo && (
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={{ uri: logbook.check_out.photo }}
+                      style={styles.detailPhoto}
+                      resizeMode="cover"
+                    />
+                  </View>
+                )}
 
                 {/* Sub-Activity Scores */}
-                {logbook.check_out.sub_activity_scores_grouped &&
+                {logbook.check_out?.sub_activity_scores_grouped &&
                   logbook.check_out.sub_activity_scores_grouped.length > 0 && (
                     <View style={styles.subActivityScoresContainer}>
                       <Text
@@ -1016,22 +1024,30 @@ export default function LogbookVerificationScreen() {
                     style={[
                       styles.verifyButton,
                       {
-                        backgroundColor: logbook?.check_out?.current_advisor_has_scored
+                        backgroundColor: logbook?.check_out?.current_advisor_has_scored || !logbook?.check_out
                           ? "#9ca3af"
                           : colors.tint,
                       },
                     ]}
                     onPress={() => setShowVerifyModal(true)}
-                    disabled={logbook?.check_out?.current_advisor_has_scored}
+                    disabled={logbook?.check_out?.current_advisor_has_scored || !logbook?.check_out}
                   >
                     <Ionicons
-                      name={logbook?.check_out?.current_advisor_has_scored ? "checkmark-circle" : "checkmark-circle-outline"}
+                      name={logbook?.check_out?.current_advisor_has_scored 
+                        ? "checkmark-circle" 
+                        : !logbook?.check_out 
+                          ? "time-outline" 
+                          : "checkmark-circle-outline"}
                       size={18}
                       color="white"
                       style={styles.actionIcon}
                     />
                     <Text style={styles.verifyButtonText}>
-                      {logbook?.check_out?.current_advisor_has_scored ? "Sudah Diverifikasi" : "Verifikasi"}
+                      {logbook?.check_out?.current_advisor_has_scored 
+                        ? "Sudah Diverifikasi" 
+                        : !logbook?.check_out 
+                          ? "Belum Selesai" 
+                          : "Verifikasi"}
                     </Text>
                   </TouchableOpacity>
                 )}

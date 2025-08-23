@@ -138,8 +138,8 @@ export default function ProfileScreen() {
           birthday: userInfo.birthday || "",
           gender: userInfo.gender || "",
           student_id: userInfo.student_id || "",
-          group_id: userInfo.group_id || 0,
-          stase_id: userInfo.stace_id || 0  // Use stace_id from new API response
+          group_id: userInfo.group?.id || 0,
+          stase_id: userInfo.stace?.id || 0  // Use stace_id from new API response
         });
 
         // Load stases
@@ -834,44 +834,7 @@ console.log(userInfo);
           Advisor Profile
         </Text>
 
-        {/* Current Group Information for Advisor */}
-        {userInfo && (
-          <Card title="Informasi Kelompok Saat Ini" style={{ marginBottom: 20 }}>
-            <View style={{ padding: 16 }}>
-              
-              <View style={{ marginBottom: 12 }}>
-                <Text style={[styles.label, { color: colors.text }]}>Stase Aktif</Text>
-                <Text style={[{ fontSize: 16, color: colors.text, fontWeight: '500' }]}>
-                  {userInfo.stace_name || 'Belum ada stase'}
-                </Text>
-              </View>
-              
-              <View style={{ marginBottom: 12 }}>
-                <Text style={[styles.label, { color: colors.text }]}>Kelompok Aktif</Text>
-                <Text style={[{ fontSize: 16, color: colors.text, fontWeight: '500' }]}>
-                  {userInfo.group_name || 'Belum ada kelompok'}
-                </Text>
-              </View>
-              
-              <View style={{ marginBottom: 12 }}>
-                <Text style={[styles.label, { color: colors.text }]}>Status Kelompok</Text>
-                <Text style={[{ fontSize: 16, color: colors.text, fontWeight: '500' }]}>
-                  {userInfo.group_status || 'Tidak diketahui'}
-                </Text>
-              </View>
-              
-              <View>
-                <Text style={[styles.label, { color: colors.text }]}>Periode</Text>
-                <Text style={[{ fontSize: 16, color: colors.text, fontWeight: '500' }]}>
-                  {userInfo.group_start_date && userInfo.group_end_date 
-                    ? `${formatDisplayDate(userInfo.group_start_date)} - ${formatDisplayDate(userInfo.group_end_date)}`
-                    : 'Belum ditentukan'
-                  }
-                </Text>
-              </View>
-            </View>
-          </Card>
-        )}
+        {/* Informasi kelompok untuk advisor telah dipindahkan ke halaman dashboard */}
 
         <View style={styles.formGroup}>
           <Text style={[styles.label, { color: colors.text }]}>Name</Text>
