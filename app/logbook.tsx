@@ -84,7 +84,27 @@ export default function LogbookScreen() {
         setLoadingAdditional(true);
         const res = await api.getAdditionalActivities(token, { is_logbook_activity: true });
         if (res.success && res.data) {
-          setAdditionalCategories(Array.isArray(res.data) ? res.data : []);
+          const categories = Array.isArray(res.data) ? res.data : [];
+          setAdditionalCategories(categories);
+          
+          // Auto-add default activities
+          const defaultActivities: { categoryId: number; subCategoryId: number }[] = [];
+          categories.forEach(category => {
+            if (category.sub_categories && Array.isArray(category.sub_categories)) {
+              category.sub_categories.forEach((subCategory: any) => {
+                if (subCategory.is_default && subCategory.is_logbook_activity) {
+                  defaultActivities.push({
+                    categoryId: category.id,
+                    subCategoryId: subCategory.id
+                  });
+                }
+              });
+            }
+          });
+          
+          if (defaultActivities.length > 0) {
+            setSelectedAdditionalActivities(defaultActivities);
+          }
         } else {
           setAdditionalCategories([]);
         }
@@ -667,17 +687,35 @@ export default function LogbookScreen() {
                           </View>
                         )}
 
-                        {/* Delete Button */}
-                        <TouchableOpacity
-                          style={[styles.deleteActivityButton, { backgroundColor: 'red' }]}
-                          onPress={() => {
-                            const newSelections = selectedAdditionalActivities.filter((_, i) => i !== index);
-                            setSelectedAdditionalActivities(newSelections);
-                          }}
-                        >
-                          <Ionicons name="trash" size={16} color="white" style={styles.deleteActivityButtonIcon} />
-                          <Text style={styles.deleteActivityButtonText}>Hapus</Text>
-                        </TouchableOpacity>
+                        {/* Delete Button - only show if not default */}
+                        {(() => {
+                          // Check if this activity is default
+                          const category = additionalCategories.find(cat => cat.id === selection.categoryId);
+                          const subCategory = category?.sub_categories?.find((sub: any) => sub.id === selection.subCategoryId);
+                          const isDefault = subCategory?.is_default;
+                          
+                          if (isDefault) {
+                            return (
+                              <View style={[styles.defaultActivityIndicator, { backgroundColor: colors.tint + '20', borderColor: colors.tint }]}>
+                                <Ionicons name="lock-closed" size={16} color={colors.tint} style={styles.defaultActivityIcon} />
+                                <Text style={[styles.defaultActivityText, { color: colors.tint }]}>Aktivitas Default</Text>
+                              </View>
+                            );
+                          }
+                          
+                          return (
+                            <TouchableOpacity
+                              style={[styles.deleteActivityButton, { backgroundColor: 'red' }]}
+                              onPress={() => {
+                                const newSelections = selectedAdditionalActivities.filter((_, i) => i !== index);
+                                setSelectedAdditionalActivities(newSelections);
+                              }}
+                            >
+                              <Ionicons name="trash" size={16} color="white" style={styles.deleteActivityButtonIcon} />
+                              <Text style={styles.deleteActivityButtonText}>Hapus</Text>
+                            </TouchableOpacity>
+                          );
+                        })()}
                       </View>
                     );
                   })}
@@ -937,5 +975,21 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 14,
+  },
+  defaultActivityIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  defaultActivityIcon: {
+    marginRight: 6,
+  },
+  defaultActivityText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

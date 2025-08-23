@@ -10,6 +10,7 @@ import {
   TextInput,
   Platform,
 } from "react-native";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
@@ -38,7 +39,8 @@ export default function PenilaianCreateScreen() {
 
   // Form state
   const [assessmentName, setAssessmentName] = useState("");
-  const [assessmentDate, setAssessmentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [assessmentDate, setAssessmentDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<any[]>([]);
   const [selectedAdditionalActivities, setSelectedAdditionalActivities] = useState<{
     categoryId: number;
@@ -79,7 +81,64 @@ export default function PenilaianCreateScreen() {
 
         // If editing, fetch existing assessment details
         if (mode === "edit" && assessmentId) {
-          // TODO: Implement API to fetch specific assessment details
+          try {
+            const assessmentResponse = await api.getManualSubActivityScoreDetail(token, assessmentId);
+            if (assessmentResponse.success && assessmentResponse.data) {
+              const assessmentData = assessmentResponse.data;
+              
+              // Set assessment name and date
+              setAssessmentName(assessmentData.name);
+              setAssessmentDate(new Date(assessmentData.date));
+              
+              // Group items by sub_activity and student
+              const groupedItems: { [key: string]: any } = {};
+              const studentIds = new Set<number>();
+              const subActivityIds = new Set<number>();
+              
+              assessmentData.items.forEach(item => {
+                const key = `${item.student.id}-${item.sub_activity.id}`;
+                groupedItems[key] = item;
+                studentIds.add(item.student.id);
+                subActivityIds.add(item.sub_activity.id);
+              });
+              
+              // Set selected students
+              const selectedStudentsList = Array.from(studentIds).map(studentId => {
+                const studentItem = assessmentData.items.find(item => item.student.id === studentId);
+                return studentItem ? studentItem.student : null;
+              }).filter(Boolean);
+              setSelectedStudents(selectedStudentsList);
+              
+              // Set selected additional activities
+              const selectedActivitiesList = Array.from(subActivityIds).map(subActivityId => {
+                const activityItem = assessmentData.items.find(item => item.sub_activity.id === subActivityId);
+                if (activityItem) {
+                  return {
+                    categoryId: activityItem.sub_activity.category.id,
+                    subCategoryId: activityItem.sub_activity.id
+                  };
+                }
+                return null;
+              }).filter(Boolean);
+              setSelectedAdditionalActivities(selectedActivitiesList);
+              
+              // Set student scores
+              const scoresData: typeof studentScores = {};
+              Object.values(groupedItems).forEach((item: any) => {
+                if (!scoresData[item.student.id]) {
+                  scoresData[item.student.id] = {};
+                }
+                scoresData[item.student.id][item.sub_activity.id] = {
+                  score: item.score.toString(),
+                  note: item.note || ''
+                };
+              });
+              setStudentScores(scoresData);
+            }
+          } catch (error) {
+            console.error("Error fetching assessment details:", error);
+            Alert.alert("Error", "Gagal memuat detail penilaian");
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -162,26 +221,26 @@ export default function PenilaianCreateScreen() {
     try {
       setSubmitting(true);
 
-      // Prepare assessment data
+      // Prepare assessment data for API
       const assessmentData = {
         name: assessmentName,
-        date: assessmentDate,
-        sub_activities: selectedAdditionalActivities.map(sa => sa.subCategoryId),
-        student_scores: selectedStudents.map(student => ({
+        date: assessmentDate.toISOString().slice(0, 10),
+        students: selectedStudents.map(student => ({
           student_id: student.id,
           scores: selectedAdditionalActivities.map(selection => ({
-            sub_activity_id: selection.subCategoryId,
+            sub_additional_activity_id: selection.subCategoryId,
             score: Number(studentScores[student.id][selection.subCategoryId].score),
-            note: studentScores[student.id][selection.subCategoryId].note
+            note: studentScores[student.id][selection.subCategoryId].note || ""
           }))
         }))
       };
 
-      // TODO: Replace with actual API call to save/update assessment
-      console.log("Assessment Data:", assessmentData);
+      // Call API to create manual sub activity scores in bulk
+      const response = await api.createManualSubActivityScoresBulk(token!, assessmentData);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!response.success) {
+        throw new Error(response.message || "Gagal menyimpan penilaian");
+      }
 
       Alert.alert(
         "Berhasil", 
@@ -259,20 +318,38 @@ export default function PenilaianCreateScreen() {
 
           <View style={styles.formGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Tanggal</Text>
-            <TextInput
+            <TouchableOpacity
               style={[
                 styles.input, 
                 { 
                   backgroundColor: colors.inputBackground, 
-                  color: colors.text, 
-                  borderColor: colors.inputBorder 
+                  borderColor: colors.inputBorder,
+                  justifyContent: 'center'
                 }
               ]}
-              value={assessmentDate}
-              onChangeText={setAssessmentDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.icon}
-            />
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={[{ color: colors.text }]}>
+                {assessmentDate.toLocaleDateString('id-ID', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={assessmentDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (selectedDate) {
+                    setAssessmentDate(selectedDate);
+                  }
+                }}
+              />
+            )}
           </View>
         </Card>
 

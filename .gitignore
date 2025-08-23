@@ -37,3 +37,7 @@ yarn-error.*
 
 app-example
 
+# Native project folders for CNG/Prebuild
+/android
+/ios
+

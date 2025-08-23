@@ -1182,4 +1182,86 @@ export const api = {
     const options = createRequestOptions("POST", data, token);
     return fetchWithTimeout<null>(url, options);
   },
+
+  // Create manual sub activity scores in bulk
+  createManualSubActivityScoresBulk: async (
+    token: string,
+    data: {
+      name: string;
+      date: string;
+      students: {
+        student_id: number;
+        scores: {
+          sub_additional_activity_id: number;
+          score: number;
+          note: string;
+        }[];
+      }[];
+    }
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const url = `${API_URL}/manual-sub-activity-scores/bulk`;
+      const options = createRequestOptions("POST", data, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in createManualSubActivityScoresBulk:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Get manual sub activity scores
+  getManualSubActivityScores: async (
+    token: string
+  ): Promise<ApiResponse<any[]>> => {
+    try {
+      const url = `${API_URL}/manual-sub-activity-scores`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<any[]>(url, options);
+    } catch (error) {
+      console.error("Error in getManualSubActivityScores:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Get manual sub activity score detail
+  getManualSubActivityScoreDetail: async (
+    token: string,
+    id: number
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const url = `${API_URL}/manual-sub-activity-scores/${id}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in getManualSubActivityScoreDetail:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Delete manual sub activity score
+  deleteManualSubActivityScore: async (
+    token: string,
+    id: number
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const url = `${API_URL}/manual-sub-activity-scores/${id}`;
+      const options = createRequestOptions("DELETE", undefined, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in deleteManualSubActivityScore:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
 };
