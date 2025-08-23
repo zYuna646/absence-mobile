@@ -36,3 +36,8 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Native project folders for CNG/Prebuild
+/android
+/ios
+

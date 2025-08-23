@@ -7,6 +7,12 @@ export interface ApiResponse<T> {
   data?: T;
   message?: string;
   error?: string;
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
 }
 
 // Login response data structure
@@ -21,6 +27,45 @@ export interface UserSessionData {
   username: string;
   email: string;
   role: UserRole;
+  user_id?: number;
+  type?: string;
+  phone?: string;
+  birthday?: string;
+  gender?: string;
+  // Student specific fields
+  student_id?: string;
+  group?: {
+    id: number;
+    name: string;
+  };
+  stace?: {
+    id: number;
+    name: string;
+  };
+  advisors?: Array<{
+    id: number;
+    name: string;
+    type: string;
+    position: number;
+    position_type: string;
+  }>;
+  // Common fields for both student and advisor
+  stace_id?: number;
+  stace_name?: string;
+  group_id?: number;
+  group_name?: string;
+  group_status?: string;
+  group_start_date?: string;
+  group_end_date?: string;
+  // Advisor specific fields
+  position?: number;
+  position_type?: string;
+  // Academic advisor fields
+  npwp?: string;
+  nip?: string;
+  // Clinic advisor fields
+  location?: string;
+  room?: string;
   [key: string]: any; // Allow additional properties
 }
 
@@ -57,7 +102,7 @@ export interface AdvisorRegistrationData {
   phone: string;
   birthday: string;
   gender: string;
-  stase_id: number;
+  stace_id: number; // Changed from stase_id to stace_id
   type: string; // "academic" or "clinic"
   // Fields for academic preceptor
   npwp?: string;
@@ -75,6 +120,153 @@ export interface FileData {
   updated_at: string;
   name: string;
   file: string;
+  stace_id: number;
+  stace: {
+    id: number;
+    name: string;
+    created_at: string;
+    updated_at: string;
+  };
+}
+
+// Activity data structure
+export interface ActivityData {
+  id: number;
+  name: string;
+  indicators: string;
+  clinic_advisor_id?: number;
+  advisor_clinic_name?: string;
+  advisor_clinic_id?: number;
+  location?: string;
+  room?: string;
+  is_lock: number;
+  lock_date: string | null;
+  unlock_date: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Clinic Advisor data structure
+export interface ClinicAdvisorData {
+  id: number;
+  name: string;
+  location?: string;
+  room?: string;
+  advisor_id?: number; // Added for API response structure
+  // Add other relevant fields if needed
+}
+
+// Student profile update data structure
+export interface StudentProfileUpdateData {
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  birthday: string;
+  gender: string;
+  group_id: number;
+  student_id: string;
+  user_id?: number;
+}
+
+// Advisor profile update data structure
+export interface AdvisorProfileUpdateData {
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  birthday: string;
+  gender: string;
+  stase_id: number;
+  type: string; // "academic" or "clinic"
+  user_id?: number;
+  position_type?: string;
+  // Fields for academic preceptor
+  npwp?: string;
+  nip?: string;
+  // Fields for clinic preceptor
+  location?: string;
+  room?: string;
+  password?: string; // Optional for updates
+}
+
+// Visit data structure
+export interface VisitData {
+  id: number;
+  visit_date: string;
+  visit_time: string;
+  status: string;
+  location: string;
+  description?: string;
+  photo?: string;
+  score?: number;
+}
+
+// Attendance data structure
+export interface AttendanceData {
+  advisor: {
+    id: string;
+    name: string;
+  };
+  activity: {
+    id: string;
+    name: string;
+  };
+  check_in: {
+    id: string;
+    address: string;
+    latitude: string;
+    longitude: string;
+    photo: string;
+    check_time: string;
+    date: string;
+  };
+  check_out: string | null;
+}
+
+export interface AttendanceListItem {
+  check_in_id: number;
+  check_in_date: string;
+  check_in_time: string;
+  check_out_date: string | null;
+  check_out_time: string | null;
+  status: "complete" | "incomplete";
+}
+
+export interface AttendanceDetail {
+  advisor: {
+    id: number;
+    name: string;
+  };
+  activity: {
+    id: number;
+    name: string;
+  };
+  check_in: {
+    id: number;
+    address: string;
+    latitude: string;
+    longitude: string;
+    photo: string;
+    check_time: string;
+    date: string;
+  };
+  check_out: {
+    id: number;
+    address: string;
+    latitude: string;
+    longitude: string;
+    photo: string;
+    description: string | null;
+    check_time: string;
+  } | null;
+}
+
+// Add interface for update password
+export interface UpdatePasswordData {
+  current_password: string;
+  new_password: string;
+  new_password_confirmation: string;
 }
 
 // Error handling for fetch
@@ -130,7 +322,9 @@ async function fetchWithTimeout<T>(
 
     // Log the request data
     if (!isSilent) {
-      console.log("API Request:", url, 
+      console.log(
+        "API Request:",
+        url,
         options.body ? JSON.parse(options.body as string) : "No body"
       );
     }
@@ -139,9 +333,9 @@ async function fetchWithTimeout<T>(
       ...options,
       signal: controller.signal,
     });
-    
+
     console.log("API Response Status:", response.status, response.statusText);
-    
+
     // Get response text first
     const responseText = await response.text();
     console.log("API Response Text:", responseText);
@@ -151,12 +345,17 @@ async function fetchWithTimeout<T>(
     // Try to parse the response as JSON, but handle parsing errors gracefully
     let data: any;
     try {
-      data = responseText ? JSON.parse(responseText) : { success: false, message: "Empty response" };
+      data = responseText
+        ? JSON.parse(responseText)
+        : { success: false, message: "Empty response" };
     } catch (jsonError) {
       console.error("JSON parsing error:", jsonError);
       return {
         success: false,
-        message: `Invalid response format: ${responseText.substring(0, 100)}...`,
+        message: `Invalid response format: ${responseText.substring(
+          0,
+          100
+        )}...`,
       };
     }
 
@@ -208,6 +407,27 @@ export const api = {
     return fetchWithTimeout<LoginResponseData>(url, options);
   },
 
+  // Additional Activities
+  getAdditionalActivities: async (
+    token: string,
+    params?: { is_logbook_activity?: boolean }
+  ): Promise<ApiResponse<any>> => {
+    const queryParams = new URLSearchParams();
+    if (params && typeof params.is_logbook_activity !== "undefined") {
+      queryParams.append(
+        "is_logbook_activity",
+        params.is_logbook_activity ? "true" : "false"
+      );
+    }
+
+    const queryString = queryParams.toString();
+    const url = `${API_URL}${ENDPOINTS.ADDITIONAL_ACTIVITIES}${
+      queryString ? `?${queryString}` : ""
+    }`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
   // Get user session (profile)
   getSession: async (
     token: string,
@@ -223,6 +443,213 @@ export const api = {
     const url = `${API_URL}${ENDPOINTS.LOGOUT}`;
     const options = createRequestOptions("POST", undefined, token);
     return fetchWithTimeout<null>(url, options);
+  },
+
+  // Logbook check-in
+  checkInLogbook: async (
+    token: string,
+    formData: FormData
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/logbooks/check-in`;
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const responseText = await response.text();
+      let data;
+      try {
+        data = responseText
+          ? JSON.parse(responseText)
+          : { success: false, message: "Empty response" };
+      } catch (jsonError) {
+        console.error("JSON parsing error:", jsonError);
+        return {
+          success: false,
+          message: `Invalid response format: ${responseText.substring(
+            0,
+            100
+          )}...`,
+        };
+      }
+
+      if (!response.ok) {
+        throw new ApiError(
+          data.message || "An error occurred during the logbook check-in",
+          response.status
+        );
+      }
+
+      return data;
+    } catch (error) {
+      console.error("API error:", error);
+
+      if (error instanceof ApiError) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      }
+
+      if (error instanceof Error && error.name === "AbortError") {
+        return {
+          success: false,
+          message: "Request timeout",
+        };
+      }
+
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Get student logbooks
+  getStudentLogbooks: async (
+    token: string,
+    activityId: number
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/students/my-logbooks/${activityId}`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
+  // Get logbook details
+  getLogbookDetails: async (
+    token: string,
+    checkInId: number
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/logbooks/${checkInId}`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
+  // Get student dashboard statistics
+  getStudentStatistics: async (token: string): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/students/statistics`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
+  // Get advisor dashboard statistics
+  getAdvisorStatistics: async (
+    token: string,
+    params?: {
+      start_date?: string;
+      end_date?: string;
+      page?: number;
+      per_page?: number;
+      student_id?: number;
+    }
+  ): Promise<ApiResponse<any>> => {
+    // Build query string from params
+    const queryParams = new URLSearchParams();
+    if (params) {
+      if (params.start_date)
+        queryParams.append("start_date", params.start_date);
+      if (params.end_date) queryParams.append("end_date", params.end_date);
+      if (params.page) queryParams.append("page", params.page.toString());
+      if (params.per_page)
+        queryParams.append("per_page", params.per_page.toString());
+      if (params.student_id)
+        queryParams.append("student_id", params.student_id.toString());
+    }
+
+    const queryString = queryParams.toString();
+    const url = `${API_URL}/advisors/statistics${
+      queryString ? `?${queryString}` : ""
+    }`;
+
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
+  // Logbook check-out
+  checkOutLogbook: async (
+    token: string,
+    checkInId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}/logbooks/${checkInId}/check-out`;
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const responseText = await response.text();
+      let data;
+      try {
+        data = responseText
+          ? JSON.parse(responseText)
+          : { success: false, message: "Empty response" };
+      } catch (jsonError) {
+        console.error("JSON parsing error:", jsonError);
+        return {
+          success: false,
+          message: `Invalid response format: ${responseText.substring(
+            0,
+            100
+          )}...`,
+        };
+      }
+
+      if (!response.ok) {
+        throw new ApiError(
+          data.message || "An error occurred during the logbook check-out",
+          response.status
+        );
+      }
+
+      return data;
+    } catch (error) {
+      console.error("API error:", error);
+
+      if (error instanceof ApiError) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      }
+
+      if (error instanceof Error && error.name === "AbortError") {
+        return {
+          success: false,
+          message: "Request timeout",
+        };
+      }
+
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   },
 
   // Get all stases
@@ -241,12 +668,19 @@ export const api = {
     return fetchWithTimeout<GroupData[]>(url, options);
   },
 
+  // Get groups by stase ID
+  getGroupsByStase: async (staseId: number, token?: string): Promise<ApiResponse<GroupData[]>> => {
+    const url = `${API_URL}/groups/${staseId}`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<GroupData[]>(url, options);
+  },
+
   // Register a new student
   registerStudent: async (
     data: RegistrationData
   ): Promise<ApiResponse<any>> => {
     const url = `${API_URL}${ENDPOINTS.STUDENTS_REGISTER}`;
-    
+
     // Ensure all data is properly formatted
     const sanitizedData = {
       name: data.name.trim(),
@@ -257,9 +691,9 @@ export const api = {
       gender: data.gender.trim(),
       student_id: data.student_id.trim(),
       group_id: Number(data.group_id),
-      password: data.password
+      password: data.password,
     };
-    
+
     const options = createRequestOptions("POST", sanitizedData);
     return fetchWithTimeout<any>(url, options);
   },
@@ -269,7 +703,7 @@ export const api = {
     data: AdvisorRegistrationData
   ): Promise<ApiResponse<any>> => {
     const url = `${API_URL}${ENDPOINTS.ADVISORS_REGISTER}`;
-    
+
     // Ensure all data is properly formatted
     const sanitizedData: any = {
       name: data.name.trim(),
@@ -278,11 +712,11 @@ export const api = {
       phone: data.phone.trim(),
       birthday: data.birthday.trim(),
       gender: data.gender.trim(),
-      stace_id: Number(data.stase_id),
+      stace_id: Number(data.stace_id), // Changed from stase_id to stace_id
       type: data.type,
-      password: data.password
+      password: data.password,
     };
-    
+
     // Add specific fields based on preceptor type
     if (data.type === "academic") {
       sanitizedData.npwp = data.npwp?.trim() || "";
@@ -291,7 +725,7 @@ export const api = {
       sanitizedData.location = data.location?.trim() || "";
       sanitizedData.room = data.room?.trim() || "";
     }
-    
+
     const options = createRequestOptions("POST", sanitizedData);
     return fetchWithTimeout<any>(url, options);
   },
@@ -303,8 +737,531 @@ export const api = {
     return fetchWithTimeout<FileData[]>(url, options);
   },
 
-  // Get file download URL
-  getFileDownloadUrl: (fileId: number): string => {
-    return `${API_URL}/files/downloads/${fileId}`;
+  // Get all activities
+  getActivities: async (
+    token: string
+  ): Promise<ApiResponse<ActivityData[]>> => {
+    const url = `${API_URL}${ENDPOINTS.ACTIVITIES}`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<ActivityData[]>(url, options);
+  },
+
+  // Create a new activity
+  createActivity: async (
+    token: string,
+    data: {
+      name: string;
+      indicators: string;
+      clinic_advisor_id: number;
+    }
+  ): Promise<ApiResponse<ActivityData>> => {
+    const url = `${API_URL}${ENDPOINTS.ACTIVITIES}`;
+    const options = createRequestOptions("POST", data, token);
+    return fetchWithTimeout<ActivityData>(url, options);
+  },
+
+  // Get all clinic advisors
+  getClinicAdvisors: async (
+    token: string
+  ): Promise<ApiResponse<ClinicAdvisorData[]>> => {
+    const url = `${API_URL}${ENDPOINTS.ADVISORS_CLINICS}`;
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<ClinicAdvisorData[]>(url, options);
+  },
+
+  // Get all students
+  getStudents: async (
+    token: string,
+    params?: {
+      per_page?: number;
+      search?: string;
+    }
+  ): Promise<ApiResponse<any>> => {
+    // Build query string from params
+    const queryParams = new URLSearchParams();
+    if (params) {
+      if (params.per_page)
+        queryParams.append("per_page", params.per_page.toString());
+      if (params.search) queryParams.append("search", params.search);
+    }
+
+    const queryString = queryParams.toString();
+    const url = `${API_URL}/students${queryString ? `?${queryString}` : ""}`;
+
+    const options = createRequestOptions("GET", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
+
+  // Update student profile with new endpoint
+  updateStudentProfile: async (
+    token: string,
+    data: StudentProfileUpdateData
+  ): Promise<ApiResponse<UserSessionData>> => {
+    const url = `${API_URL}/students/profile`;
+    const options = createRequestOptions("PUT", data, token);
+    return fetchWithTimeout<UserSessionData>(url, options);
+  },
+
+  // Update advisor profile
+  updateAdvisorProfile: async (
+    token: string,
+    data: AdvisorProfileUpdateData
+  ): Promise<ApiResponse<UserSessionData>> => {
+    const url = `${API_URL}${ENDPOINTS.UPDATE_ADVISOR_PROFILE}`;
+    const options = createRequestOptions("PUT", data, token);
+    return fetchWithTimeout<UserSessionData>(url, options);
+  },
+
+  // Visit API calls
+  async checkInVisit(
+    token: string,
+    activityId: number,
+    studentId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/${activityId}/${studentId}/check-in`;
+
+      const options: RequestInit = {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      };
+
+      const response = await fetch(url, options);
+      const data = await response.json();
+
+      return data;
+    } catch (error) {
+      console.error("Error in checkInVisit:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async checkOutVisit(
+    token: string,
+    checkInId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/${checkInId}/check-out`;
+
+      const options: RequestInit = {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      };
+
+      const response = await fetch(url, options);
+      const data = await response.json();
+
+      return data;
+    } catch (error) {
+      console.error("Error in checkOutVisit:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getVisits(
+    token: string,
+    studentId: number
+  ): Promise<ApiResponse<VisitData[]>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/student/${studentId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<VisitData[]>(url, options);
+    } catch (error) {
+      console.error("Error in getVisits:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getVisitsByActivity(
+    token: string,
+    activityId: number,
+    studentId: number
+  ): Promise<
+    ApiResponse<{
+      activity: { id: string; name: string };
+      student: { id: string; name: string; nim: string };
+      visits: any;
+    }>
+  > {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/activities/${activityId}/${studentId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<{
+        activity: { id: string; name: string };
+        student: { id: string; name: string; nim: string };
+        visits: any;
+      }>(url, options);
+    } catch (error) {
+      console.error("Error in getVisitsByActivity:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getVisitDetails(
+    token: string,
+    visitId: number
+  ): Promise<ApiResponse<VisitData>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.VISITS}/${visitId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<VisitData>(url, options);
+    } catch (error) {
+      console.error("Error in getVisitDetails:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Get logbook data for a student
+  async getLogbook(
+    token: string,
+    studentId: number,
+    activityId: number
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.LOGBOOKS}/${activityId}/${studentId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in getLogbook:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Verify a logbook entry
+  async verifyLogbook(
+    token: string,
+    checkOutId: number,
+    data: { 
+      scores: {
+        sub_additional_activity_id: number;
+        score: number;
+        note?: string;
+      }[];
+    }
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.LOGBOOKS}/${checkOutId}/verify`;
+      const options = createRequestOptions("POST", data, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in verifyLogbook:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getAttendances(
+    token: string
+  ): Promise<ApiResponse<AttendanceListItem[]>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.ATTENDANCES}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<AttendanceListItem[]>(url, options);
+    } catch (error) {
+      console.error("Error in getAttendances:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getAttendanceDetail(
+    token: string,
+    checkInId: number
+  ): Promise<ApiResponse<AttendanceDetail>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.ATTENDANCES}/${checkInId}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<AttendanceDetail>(url, options);
+    } catch (error) {
+      console.error("Error in getAttendanceDetail:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async checkInAttendance(
+    token: string,
+    activityId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.ATTENDANCES}/${activityId}/check-in`;
+      const options = {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      };
+      const response = await fetch(url, options);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error in checkInAttendance:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async checkOutAttendance(
+    token: string,
+    checkInId: number,
+    formData: FormData
+  ): Promise<ApiResponse<any>> {
+    try {
+      console.log(checkInId);
+      console.log(formData);
+      const url = `${API_URL}${ENDPOINTS.ATTENDANCES}/${checkInId}/check-out`;
+      const options = {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      };
+
+      const response = await fetch(url, options);
+      console.log(response);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error in checkOutAttendance:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Notification endpoints
+  async registerDeviceForNotifications(
+    token: string,
+    pushToken: string,
+    userId: string,
+    platform: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/device/register`;
+      const options = createRequestOptions(
+        "POST",
+        {
+          push_token: pushToken,
+          user_id: userId,
+          platform: platform,
+        },
+        token
+      );
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in registerDeviceForNotifications:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async sendNotification(
+    token: string,
+    data: {
+      title: string;
+      message: string;
+      user_id?: string;
+      push_token?: string;
+      data?: any;
+    }
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/notifications/send`;
+      const options = createRequestOptions("POST", data, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in sendNotification:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async getNotificationHistory(
+    token: string,
+    userId?: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/notifications/history${
+        userId ? `?user_id=${userId}` : ""
+      }`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in getNotificationHistory:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Lock activity
+  async lockActivity(
+    token: string,
+    activityId: number
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/activities/${activityId}/lock`;
+      const options = createRequestOptions("POST", {}, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in lockActivity:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Unlock activity
+  async unlockActivity(
+    token: string,
+    activityId: number
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}/activities/${activityId}/unlock`;
+      const options = createRequestOptions("POST", {}, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in unlockActivity:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Update password
+  updatePassword: async (
+    token: string,
+    data: UpdatePasswordData
+  ): Promise<ApiResponse<null>> => {
+    const url = `${API_URL}/auth/update-password`;
+    const options = createRequestOptions("POST", data, token);
+    return fetchWithTimeout<null>(url, options);
+  },
+
+  // Create manual sub activity scores in bulk
+  createManualSubActivityScoresBulk: async (
+    token: string,
+    data: {
+      name: string;
+      date: string;
+      students: {
+        student_id: number;
+        scores: {
+          sub_additional_activity_id: number;
+          score: number;
+          note: string;
+        }[];
+      }[];
+    }
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const url = `${API_URL}/manual-sub-activity-scores/bulk`;
+      const options = createRequestOptions("POST", data, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in createManualSubActivityScoresBulk:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Get manual sub activity scores
+  getManualSubActivityScores: async (
+    token: string
+  ): Promise<ApiResponse<any[]>> => {
+    try {
+      const url = `${API_URL}/manual-sub-activity-scores`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<any[]>(url, options);
+    } catch (error) {
+      console.error("Error in getManualSubActivityScores:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Get manual sub activity score detail
+  getManualSubActivityScoreDetail: async (
+    token: string,
+    id: number
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const url = `${API_URL}/manual-sub-activity-scores/${id}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in getManualSubActivityScoreDetail:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Delete manual sub activity score
+  deleteManualSubActivityScore: async (
+    token: string,
+    id: number
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const url = `${API_URL}/manual-sub-activity-scores/${id}`;
+      const options = createRequestOptions("DELETE", undefined, token);
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in deleteManualSubActivityScore:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   },
 };

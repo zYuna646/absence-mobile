@@ -1,13 +1,15 @@
 import React, { ReactNode } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useThemeColor } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
-interface ActivityItemProps {
+export interface ActivityItemProps {
   title: string | ReactNode;
   subtitle?: string;
   timestamp: string;
   showDivider?: boolean;
+  status?: string;
+  onPress?: () => void;
 }
 
 /**
@@ -18,33 +20,83 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
   subtitle,
   timestamp,
   showDivider = false,
+  status,
+  onPress,
 }) => {
   const colors = useThemeColor();
   const colorScheme = useColorScheme();
-  
-  // Use a divider color based on the theme
-  const dividerColor = colorScheme === 'dark' ? '#444' : '#E5E5E5';
 
-  return (
+  // Use a divider color based on the theme
+  const dividerColor = colorScheme === "dark" ? "#444" : "#E5E5E5";
+
+  // Get status color
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case "verified":
+      case "complete":
+        return colors.success || "#28a745";
+      case "unverified":
+      case "incomplete":
+        return colors.warning || "#ffc107";
+      default:
+        return colors.icon || "#6c757d";
+    }
+  };
+
+  const itemContent = (
     <>
-      <View style={styles.activityItem}>
-        {typeof title === "string" ? (
-          <Text style={[styles.activityText, { color: colors.text }]}>
-            {title}
-          </Text>
-        ) : (
-          title
-        )}
-        {subtitle && (
-          <Text style={[styles.activitySubtext, { color: colors.icon }]}>
-            {subtitle}
-          </Text>
-        )}
+      {typeof title === "string" ? (
+        <Text style={[styles.activityText, { color: colors.text }]}>
+          {title}
+        </Text>
+      ) : (
+        title
+      )}
+      {subtitle && (
+        <Text style={[styles.activitySubtext, { color: colors.icon }]}>
+          {subtitle}
+        </Text>
+      )}
+      <View style={styles.timestampContainer}>
         <Text style={[styles.activityTime, { color: colors.icon }]}>
           {timestamp}
         </Text>
+        {status && (
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(status) },
+            ]}
+          >
+            <Text style={styles.statusText}>
+              {status === "incomplete"
+                ? "Belum Selesai"
+                : status === "complete"
+                ? "Selesai"
+                : status === "verified"
+                ? "Terverifikasi"
+                : status === "unverified"
+                ? "Menunggu"
+                : status}
+            </Text>
+          </View>
+        )}
       </View>
-      {showDivider && <View style={[styles.divider, { backgroundColor: dividerColor }]} />}
+    </>
+  );
+
+  return (
+    <>
+      {onPress ? (
+        <TouchableOpacity onPress={onPress} style={styles.activityItem}>
+          {itemContent}
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.activityItem}>{itemContent}</View>
+      )}
+      {showDivider && (
+        <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+      )}
     </>
   );
 };
@@ -56,6 +108,7 @@ const styles = StyleSheet.create({
   activityText: {
     fontSize: 14,
     marginBottom: 4,
+    fontWeight: "500",
   },
   activitySubtext: {
     fontSize: 12,
@@ -69,6 +122,21 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 8,
   },
+  timestampContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statusBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+  },
+  statusText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "500",
+  },
 });
 
-export default ActivityItem; 
+export default ActivityItem;

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { useThemeColor } from "@/constants/Colors";
 
 interface AppLogoProps {
@@ -8,7 +8,7 @@ interface AppLogoProps {
 }
 
 /**
- * AppLogo component displays the application name and subtitle
+ * AppLogo component displays the application logo and name
  */
 const AppLogo: React.FC<AppLogoProps> = ({ 
   size = "large", 
@@ -16,17 +16,19 @@ const AppLogo: React.FC<AppLogoProps> = ({
 }) => {
   const colors = useThemeColor();
   
-  // Adjust font sizes based on logo size
+  // Adjust sizes based on logo size
   const getSizeStyles = () => {
     switch(size) {
       case "small":
         return {
+          logoSize: 80,
           welcomeText: 16,
           logoText: 24,
           subtitleText: 12
         };
       case "medium":
         return {
+          logoSize: 100,
           welcomeText: 18,
           logoText: 30,
           subtitleText: 14
@@ -34,6 +36,7 @@ const AppLogo: React.FC<AppLogoProps> = ({
       case "large":
       default:
         return {
+          logoSize: 120,
           welcomeText: 22,
           logoText: 36,
           subtitleText: 16
@@ -45,13 +48,18 @@ const AppLogo: React.FC<AppLogoProps> = ({
   
   return (
     <View style={styles.logoContainer}>
+      <Image 
+        source={require("@/assets/images/logo.png")}
+        style={[styles.logo, { width: sizeStyles.logoSize, height: sizeStyles.logoSize }]}
+        resizeMode="contain"
+      />
       <Text 
         style={[
           styles.welcomeText, 
           { color: colors.text, fontSize: sizeStyles.welcomeText }
         ]}
       >
-        Selamat Datang
+        Selamat Datang di
       </Text>
       <Text 
         style={[
@@ -59,7 +67,7 @@ const AppLogo: React.FC<AppLogoProps> = ({
           { color: colors.tint, fontSize: sizeStyles.logoText }
         ]}
       >
-        DI SIKAD
+        MAKUTA
       </Text>
       {showSubtitle && (
         <Text 
@@ -68,7 +76,7 @@ const AppLogo: React.FC<AppLogoProps> = ({
             { color: colors.tint, fontSize: sizeStyles.subtitleText }
           ]}
         >
-          Sistem Informasi Kehadiran
+          Manajemen Kegiatan dan Unggah Tugas Akademik
         </Text>
       )}
     </View>
@@ -80,6 +88,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 40,
   },
+  logo: {
+    marginBottom: 16,
+  },
   logoText: {
     fontWeight: "bold",
   },
@@ -89,6 +100,7 @@ const styles = StyleSheet.create({
   },
   subtitleText: {
     marginTop: 4,
+    textAlign: "center",
   },
 });
 

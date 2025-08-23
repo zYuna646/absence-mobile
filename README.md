@@ -35,6 +35,88 @@ npm run reset-project
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
+## Push Notifications
+
+This app supports push notifications that can be triggered from web/backend. Here's how to send notifications:
+
+### API Endpoint
+```
+POST https://mobile-project.fzrsahi.com/api/notifications/send
+```
+
+### Headers
+```
+Authorization: Bearer YOUR_AUTH_TOKEN
+Content-Type: application/json
+```
+
+### Request Body
+```json
+{
+  "title": "Notification Title",
+  "message": "Your notification message here",
+  "user_id": "target_user_id", // Optional: specific user
+  "push_token": "expo_push_token", // Optional: specific device
+  "data": {
+    "type": "custom_type",
+    "additional_data": "any_value"
+  }
+}
+```
+
+### Example using cURL
+```bash
+curl -X POST https://mobile-project.fzrsahi.com/api/notifications/send \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "New Assignment",
+    "message": "You have a new assignment to complete",
+    "user_id": "123",
+    "data": {
+      "type": "assignment",
+      "assignment_id": "456"
+    }
+  }'
+```
+
+### Example using JavaScript/Fetch
+```javascript
+fetch('https://mobile-project.fzrsahi.com/api/notifications/send', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_AUTH_TOKEN',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    title: 'Meeting Reminder',
+    message: 'You have a meeting in 15 minutes',
+    user_id: '123',
+    data: {
+      type: 'meeting_reminder',
+      meeting_id: '789'
+    }
+  })
+})
+.then(response => response.json())
+.then(data => console.log('Notification sent:', data))
+.catch(error => console.error('Error:', error));
+```
+
+### Notification Types
+The app handles different notification types based on the `data.type` field:
+
+- `file_download`: Opens file manager when tapped
+- `attendance_reminder`: Navigates to attendance screen
+- `verification_request`: Navigates to verification screen
+- Custom types can be added as needed
+
+### Device Registration
+Devices are automatically registered when users log in. The app sends the Expo push token to the backend at:
+```
+POST https://mobile-project.fzrsahi.com/api/device/register
+```
+
 ## Learn more
 
 To learn more about developing your project with Expo, look at the following resources:

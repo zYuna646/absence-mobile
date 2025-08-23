@@ -18,7 +18,7 @@ interface BiodataFormProps {
     birthday: string;
     student_id: string;
     group_id: number | null;
-    stase_id: number | null;
+    stace_id: number | null; // Changed from stase_id to stace_id
     phone: string;
     // Fields for advisor
     type: string;
@@ -51,29 +51,18 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
       setError(null);
       
       try {
-        // Fetch stases data for preceptors (both academic and clinic)
-        if (formData.role === "preseptor_akademik" || formData.role === "preseptor_klinik") {
-          const stasesResponse = await api.getStases();
-          if (stasesResponse.success && stasesResponse.data) {
-            setStases(stasesResponse.data);
-          } else {
-            console.error("Failed to fetch stases:", stasesResponse.message);
-            setError("Gagal memuat data stase");
-          }
+        // Fetch stases data for all roles
+        const stasesResponse = await api.getStases();
+        if (stasesResponse.success && stasesResponse.data) {
+          setStases(stasesResponse.data);
+        } else {
+          console.error("Failed to fetch stases:", stasesResponse.message);
+          setError("Gagal memuat data stase");
         }
         
-        // Only fetch groups data if role is mahasiswa
-        if (formData.role === "mahasiswa") {
-          // Fetch stases data
-          const stasesResponse = await api.getStases();
-          if (stasesResponse.success && stasesResponse.data) {
-            setStases(stasesResponse.data);
-          } else {
-            console.error("Failed to fetch stases:", stasesResponse.message);
-            setError("Gagal memuat data stase");
-          }
-          
-          const groupsResponse = await api.getGroups();
+        // Only fetch groups data if role is mahasiswa and stase is selected
+        if (formData.role === "mahasiswa" && formData.stace_id) {
+          const groupsResponse = await api.getGroupsByStase(formData.stace_id);
           if (groupsResponse.success && groupsResponse.data) {
             setGroups(groupsResponse.data);
           } else {
@@ -89,10 +78,10 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
       }
     };
     
-    if (formData.role === "mahasiswa" || formData.role === "preseptor_akademik" || formData.role === "preseptor_klinik") {
+    if (formData.role) {
       fetchData();
     }
-  }, [formData.role]);
+  }, [formData.role, formData.stace_id]);
   
   // Input style for text inputs
   const inputStyle = {
@@ -225,6 +214,34 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
         />
         
         {renderLoadingOrError()}
+
+        <Text style={[styles.label, { color: colors.text }]}>Stase</Text>
+        <View style={pickerContainerStyle}>
+          <Picker
+            selectedValue={formData.stace_id}
+            onValueChange={(value) => {
+              onChange("stace_id", value);
+              // Reset group selection when stase changes
+              onChange("group_id", null);
+            }}
+            style={{ color: colors.text }}
+            dropdownIconColor={colors.icon}
+            enabled={!isLoading && !error}
+          >
+            <Picker.Item 
+              label="Pilih Stase" 
+              value={null} 
+              color={placeholderTextColor} 
+            />
+            {stases.map((stase) => (
+              <Picker.Item 
+                key={stase.id} 
+                label={stase.name} 
+                value={stase.id} 
+              />
+            ))}
+          </Picker>
+        </View>
         
         <Text style={[styles.label, { color: colors.text }]}>Kelompok</Text>
         <View style={pickerContainerStyle}>
@@ -233,10 +250,10 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
             onValueChange={(value) => onChange("group_id", value)}
             style={{ color: colors.text }}
             dropdownIconColor={colors.icon}
-            enabled={!isLoading && !error}
+            enabled={!isLoading && !error && formData.stace_id !== null}
           >
             <Picker.Item 
-              label="Pilih Kelompok" 
+              label={formData.stace_id ? "Pilih Kelompok" : "Pilih Stase terlebih dahulu"} 
               value={null} 
               color={placeholderTextColor} 
             />
@@ -266,8 +283,8 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
         <Text style={[styles.label, { color: colors.text }]}>Stase</Text>
         <View style={pickerContainerStyle}>
           <Picker
-            selectedValue={formData.stase_id}
-            onValueChange={(value) => onChange("stase_id", value)}
+            selectedValue={formData.stace_id}
+            onValueChange={(value) => onChange("stace_id", value)}
             style={{ color: colors.text }}
             dropdownIconColor={colors.icon}
             enabled={!isLoading && !error}
@@ -291,7 +308,7 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
         {formData.role === "preseptor_akademik" && (
           <>
             <FloatingLabelInput
-              label="NIP"
+              label="NIK"
               value={formData.nip}
               onChangeText={(value) => onChange("nip", value)}
               inputStyle={inputStyle}

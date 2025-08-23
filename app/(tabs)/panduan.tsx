@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { router } from 'expo-router';
+import { API_FILE_URL } from '@/constants/Config';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/constants/Colors';
@@ -11,103 +11,77 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api, FileData } from '@/services/api';
 import { useUser } from '@/context/UserContext';
+import { useNotification } from '@/context/NotificationContext';
 
 export default function PanduanScreen() {
   const colorScheme = useColorScheme();
   const colors = useThemeColor();
   const { token } = useUser();
+  const { showNotification } = useNotification();
   const [files, setFiles] = useState<FileData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState<number | null>(null);
   
   // Fetch guide files from API
-  useEffect(() => {
-    const fetchFiles = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await api.getFiles(token || undefined);
-        
-        if (response.success && response.data) {
-          setFiles(response.data);
-        } else {
-          setError(response.message || 'Failed to fetch guide files');
-        }
-      } catch (err) {
-        console.error('Error fetching files:', err);
-        setError('An error occurred while fetching guide files');
-      } finally {
-        setLoading(false);
+  const fetchFiles = async () => {
+    try {
+      setError(null);
+      
+      const response = await api.getFiles(token || undefined);
+      
+      if (response.success && response.data) {
+        setFiles(response.data);
+      } else {
+        setError(response.message || 'Failed to fetch guide files');
       }
-    };
+    } catch (err) {
+      console.error('Error fetching files:', err);
+      setError('An error occurred while fetching guide files');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
+    setLoading(true);
     fetchFiles();
   }, [token]);
+
+  // Handle refresh
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchFiles();
+  };
 
   // Handle retry button click
   const handleRetry = () => {
     setLoading(true);
     setError(null);
-    api.getFiles(token || undefined)
-      .then(response => {
-        if (response.success && response.data) {
-          setFiles(response.data);
-        } else {
-          setError(response.message || 'Failed to fetch guide files');
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching files:', err);
-        setError('An error occurred while fetching guide files');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    fetchFiles();
   };
 
-  // Download and share a file
-  const handleDownload = async (id: number, fileName: string) => {
+  // View PDF file
+  const handleViewFile = async (file: FileData) => {
     try {
-      setDownloading(id);
+      // Navigate to PDF viewer screen
+      router.push({
+        pathname: '/panduan-view',
+        params: {
+          filePath: file.file,
+          fileName: file.name,
+        },
+      });
       
-      // Get download URL from API
-      const downloadUrl = api.getFileDownloadUrl(id);
-      
-      // Create local file path
-      const fileExt = fileName.split('.').pop() || 'pdf';
-      const localUri = FileSystem.documentDirectory + fileName;
-      
-      // Download file
-      const downloadResumable = FileSystem.createDownloadResumable(
-        downloadUrl,
-        localUri,
-        {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        }
-      );
-      
-      const result = await downloadResumable.downloadAsync();
-      
-      if (result && result.uri) {
-        // Check if sharing is available
-        const isSharingAvailable = await Sharing.isAvailableAsync();
-        
-        if (isSharingAvailable) {
-          await Sharing.shareAsync(result.uri);
-        } else {
-          // Open the file directly if sharing is not available
-          await Linking.openURL(result.uri);
-        }
-      } else {
-        throw new Error('Download failed');
-      }
+      // Show notification that viewing has started
+      await showNotification({
+        title: 'Membuka File',
+        message: `Membuka "${file.name}"`,
+      });
     } catch (err) {
-      console.error('Error downloading file:', err);
-      alert('Failed to download file. Please try again later.');
-    } finally {
-      setDownloading(null);
+      console.error('Error viewing file:', err);
+      alert('Failed to open file. Please try again later.');
     }
   };
   
@@ -125,11 +99,20 @@ export default function PanduanScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <View style={styles.header}>
-
       </View>
       
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {loading ? (
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.tint]}
+            tintColor={colors.tint}
+          />
+        }
+      >
+        {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.tint} />
             <Text style={[styles.loadingText, { color: colors.text }]}>
@@ -167,8 +150,7 @@ export default function PanduanScreen() {
             <TouchableOpacity
               key={file.id}
               style={[styles.fileItem, { backgroundColor: colors.background }]}
-              onPress={() => handleDownload(file.id, file.name)}
-              disabled={downloading === file.id}
+              onPress={() => handleViewFile(file)}
             >
               <View style={styles.fileContent}>
                 <View style={[styles.fileIconContainer, { backgroundColor: colors.tint + '20' }]}>
@@ -179,33 +161,22 @@ export default function PanduanScreen() {
                     {file.name}
                   </Text>
                   <Text style={[styles.fileDate, { color: colors.icon }]}>
+                    {file.stace.name}
+                  </Text>
+                  <Text style={[styles.fileDate, { color: colors.icon }]}>
                     Ditambahkan pada {formatDate(file.created_at)}
                   </Text>
                 </View>
-                {downloading === file.id ? (
-                  <ActivityIndicator size="small" color={colors.tint} />
-                ) : (
-                  <TouchableOpacity 
-                    style={[styles.downloadButton, { backgroundColor: colors.tint }]}
-                    onPress={() => handleDownload(file.id, file.name)}
-                  >
-                    <Ionicons name="download-outline" size={18} color="white" />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity 
+                  style={[styles.viewButton, { backgroundColor: colors.tint }]}
+                  onPress={() => handleViewFile(file)}
+                >
+                  <Ionicons name="document-text-outline" size={18} color="white" />
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           ))
         )}
-        
-        {/* <Card title="Tentang Dokumen">
-          <Text style={[styles.aboutText, { color: colors.text }]}>
-            Dokumen panduan disediakan untuk membantu pengguna memahami proses dan prosedur dalam aplikasi. 
-            Silakan unduh dokumen yang diperlukan dengan menekan tombol unduh.
-          </Text>
-          <Text style={[styles.aboutText, { color: colors.text, marginTop: 10 }]}>
-            Jika Anda memerlukan bantuan lebih lanjut, hubungi administrator.
-          </Text>
-        </Card> */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -264,7 +235,7 @@ const styles = StyleSheet.create({
   fileDate: {
     fontSize: 12,
   },
-  downloadButton: {
+  viewButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -308,9 +279,5 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     textAlign: 'center',
-  },
-  aboutText: {
-    fontSize: 14,
-    lineHeight: 20,
   },
 }); 

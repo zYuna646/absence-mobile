@@ -13,6 +13,7 @@ const prodApiUrl = process.env.EXPO_PUBLIC_API_URL || defaultProdApiUrl;
 // Set API URL based on environment
 // export const API_URL = prodApiUrl; // Use the production URL by default
 export const API_URL = process.env.EXPO_PUBLIC_API_URL;
+export const API_FILE_URL = process.env.EXPO_PUBLIC_API_FILE_URL;
 // API Endpoints
 export const ENDPOINTS = {
   LOGIN: "/auth/login",
@@ -23,6 +24,14 @@ export const ENDPOINTS = {
   REGISTER: "/auth/register",
   STUDENTS_REGISTER: "/students/register",
   ADVISORS_REGISTER: "/advisors/register",
+  ACTIVITIES: "/activities",
+  ADVISORS_CLINICS: "/advisors/clinics",
+  UPDATE_STUDENT_PROFILE: "/students/profile",
+  UPDATE_ADVISOR_PROFILE: "/advisors/profile",
+  VISITS: "/visits",
+  LOGBOOKS: "/logbooks",
+  ADDITIONAL_ACTIVITIES: "/additional-activities",
+  ATTENDANCES: "/attendances",
 };
 
 // Timeouts
