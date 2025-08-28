@@ -4,7 +4,7 @@
 
 // Default API URLs if environment variables are not set
 const defaultDevApiUrl = "http://localhost:3000";
-const defaultProdApiUrl = "https://mobile-project.fzrsahi.cloud/api";
+const defaultProdApiUrl = "https://makuta-ners-ung.com/api";
 
 // Get API URLs from environment variables or use defaults
 const devApiUrl = process.env.EXPO_PUBLIC_DEV_API_URL || defaultDevApiUrl;

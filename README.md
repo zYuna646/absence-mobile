@@ -1,6 +1,34 @@
-# Welcome to your Expo app 👋
+# Absence Mobile App 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplikasi absensi dan manajemen logbook berbasis mobile yang dikembangkan dengan [Expo](https://expo.dev).
+
+## Release Notes - Versi 1.0.0
+
+### Fitur Utama
+
+#### Sistem Absensi
+- Check-in dan check-out dengan validasi lokasi dan foto
+- Pencatatan waktu dan lokasi otomatis
+- Riwayat absensi lengkap dengan status
+
+#### Manajemen Logbook
+- Pencatatan aktivitas harian
+- Verifikasi logbook oleh pembimbing
+- Status verifikasi (Belum Selesai, Belum Diverifikasi, Sudah Diverifikasi)
+
+#### Ruangan dan Kegiatan
+- Pemilihan ruangan untuk absensi
+- Informasi status ruangan (tersedia/tertutup)
+- Detail pembimbing dan lokasi
+
+#### Penilaian
+- Sistem penilaian untuk aktivitas
+- Catatan dan skor untuk sub-aktivitas
+- Riwayat penilaian
+
+#### Notifikasi
+- Dukungan push notification
+- Notifikasi untuk tugas dan pengingat
 
 ## Get started
 
