@@ -38,6 +38,7 @@ export interface NotificationData {
 export class NotificationService {
   private static expoPushToken: string | null = null;
   private static fcmToken: string | null = null;
+  private static fcmListenersInitialized: boolean = false;
 
   // Initialize notification service
   static async initialize(): Promise<string | null> {
@@ -95,6 +96,12 @@ export class NotificationService {
           if (fcmToken) {
             this.fcmToken = fcmToken;
             console.log('FCM Token:', fcmToken);
+            
+            // Set up FCM message handlers only once
+            if (!this.fcmListenersInitialized) {
+              this.setupFCMListeners();
+              this.fcmListenersInitialized = true;
+            }
           }
         } catch (fcmError) {
           console.error('Error getting FCM token:', fcmError);
@@ -145,9 +152,6 @@ export class NotificationService {
       if (!pushToken) {
         return false;
       }
-
-      // Set up FCM message handlers
-      this.setupFCMListeners();
 
       // Send push token to your backend using API service
       const response = await api.registerDeviceForNotifications(

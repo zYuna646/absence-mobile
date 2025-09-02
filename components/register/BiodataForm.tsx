@@ -333,6 +333,28 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
         {formData.role === "preseptor_klinik" && (
           <>
             <FloatingLabelInput
+              label="NIK"
+              value={formData.nip}
+              onChangeText={(value) => onChange("nip", value)}
+              inputStyle={inputStyle}
+              placeholderTextColor={placeholderTextColor}
+              disabled={false}
+            />
+            
+            <View style={styles.spacer} />
+            
+            <FloatingLabelInput
+              label="NPWP"
+              value={formData.npwp}
+              onChangeText={(value) => onChange("npwp", value)}
+              inputStyle={inputStyle}
+              placeholderTextColor={placeholderTextColor}
+              disabled={false}
+            />
+            
+            <View style={styles.spacer} />
+            
+            <FloatingLabelInput
               label="Lokasi"
               value={formData.location}
               onChangeText={(value) => onChange("location", value)}
@@ -528,4 +550,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BiodataForm; 
+export default BiodataForm;

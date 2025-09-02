@@ -169,6 +169,14 @@ export default function RegisterScreen() {
             Alert.alert("Error", "Stase wajib dipilih");
             return false;
           }
+          if (!formData.nip) {
+            Alert.alert("Error", "NIK wajib diisi");
+            return false;
+          }
+          if (!formData.npwp) {
+            Alert.alert("Error", "NPWP wajib diisi");
+            return false;
+          }
           if (!formData.location) {
             Alert.alert("Error", "Lokasi wajib diisi");
             return false;
@@ -309,6 +317,8 @@ export default function RegisterScreen() {
           apiData.npwp = formData.npwp;
           apiData.nip = formData.nip;
         } else if (formData.role === "preseptor_klinik") {
+          apiData.npwp = formData.npwp;
+          apiData.nip = formData.nip;
           apiData.location = formData.location;
           apiData.room = formData.room;
         }
@@ -459,4 +469,4 @@ const styles = StyleSheet.create({
     flex: 0.48,
     backgroundColor: "#6c757d",
   },
-}); 
+});
