@@ -41,3 +41,6 @@ app-example
 /android
 /ios
 
+./env
+./google-services.json
+./GoogleService-Info.plist
