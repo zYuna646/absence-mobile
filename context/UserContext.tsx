@@ -206,12 +206,27 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                 platform: Platform.OS === "android" ? "android" : "ios"
               });
               
+              // Get FCM token if available
+              const fcmToken = NotificationService.getFCMToken();
+              
+              // Register device with existing endpoint (for backward compatibility)
               await api.registerDeviceForNotifications(
                 token,
                 pushToken,
                 sessionResponse.data.id.toString(),
-                Platform.OS === "android" ? "android" : "ios"
+                Platform.OS === "android" ? "android" : "ios",
+                fcmToken
               );
+              
+              // Register device with new endpoint
+              if (fcmToken) {
+                await api.registerDevice(
+                  token,
+                  fcmToken,
+                  Platform.OS === "android" ? "android" : "ios"
+                );
+              }
+              
               console.log("Device token registered successfully after login");
             } else {
               console.log("Push token not available, skipping device registration");
@@ -284,4 +299,4 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 };
 
 // Create a hook for using the user context
-export const useUser = () => useContext(UserContext); 
+export const useUser = () => useContext(UserContext);

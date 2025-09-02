@@ -32,7 +32,18 @@ export const ENDPOINTS = {
   LOGBOOKS: "/logbooks",
   ADDITIONAL_ACTIVITIES: "/additional-activities",
   ATTENDANCES: "/attendances",
+  REGISTER_DEVICE: "/register-device",
 };
 
 // Timeouts
 export const API_TIMEOUT = 15000; // 15 seconds
+
+// Firebase Configuration for Android and iOS only
+// Web configuration removed as it's not needed
+
+// FCM Configuration
+export const FCM_CONFIG = {
+  androidChannelId: "default-channel",
+  androidChannelName: "Default Channel",
+  androidChannelDescription: "Default notification channel"
+};

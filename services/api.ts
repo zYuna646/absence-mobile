@@ -1072,22 +1072,58 @@ export const api = {
     token: string,
     pushToken: string,
     userId: string,
-    platform: string
+    platform: string,
+    fcmToken?: string | null
   ): Promise<ApiResponse<any>> {
     try {
-      const url = `${API_URL}/device/register`;
+      const url = `${API_URL}/register-device`;
+      const payload: any = {
+        push_token: pushToken,
+        user_id: userId,
+        platform: platform,
+      };
+      
+      // Add FCM token if available
+      if (fcmToken) {
+        payload.fcm_token = fcmToken;
+      }
+      
       const options = createRequestOptions(
         "POST",
-        {
-          push_token: pushToken,
-          user_id: userId,
-          platform: platform,
-        },
+        payload,
         token
       );
       return fetchWithTimeout<any>(url, options);
     } catch (error) {
       console.error("Error in registerDeviceForNotifications:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Register device with new endpoint
+  async registerDevice(
+    token: string,
+    deviceToken: string,
+    deviceType: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      const url = `${API_URL}${ENDPOINTS.REGISTER_DEVICE}`;
+      const payload = {
+        device_token: deviceToken,
+        device_type: deviceType
+      };
+      
+      const options = createRequestOptions(
+        "POST",
+        payload,
+        token
+      );
+      return fetchWithTimeout<any>(url, options);
+    } catch (error) {
+      console.error("Error in registerDevice:", error);
       return {
         success: false,
         message: error instanceof Error ? error.message : "Unknown error",

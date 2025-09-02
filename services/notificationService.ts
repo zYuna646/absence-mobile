@@ -3,6 +3,8 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { api } from './api';
+import { FCM_CONFIG } from '../constants/Config';
+import messaging from '@react-native-firebase/messaging';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -13,19 +15,34 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Create Android notification channel for FCM
+if (Platform.OS === 'android') {
+  Notifications.setNotificationChannelAsync(FCM_CONFIG.androidChannelId, {
+    name: FCM_CONFIG.androidChannelName,
+    description: FCM_CONFIG.androidChannelDescription,
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#FF231F7C',
+  });  
+}
+
 export interface NotificationData {
   title: string;
   message: string;
   data?: any;
 }
 
+// Firebase initialization is handled by @react-native-firebase/messaging
+// No need to initialize Firebase web SDK
+
 export class NotificationService {
   private static expoPushToken: string | null = null;
+  private static fcmToken: string | null = null;
 
   // Initialize notification service
   static async initialize(): Promise<string | null> {
     try {
-      // Request permissions
+      // Request permissions for Expo notifications
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
@@ -39,14 +56,52 @@ export class NotificationService {
         return null;
       }
 
-      // Get push token for real device
+      // Request permissions for Firebase Cloud Messaging
+      if (Platform.OS === 'ios') {
+        // iOS requires additional permission for FCM
+        const authStatus = await messaging().requestPermission();
+        const enabled =
+          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+        if (!enabled) {
+          console.log('FCM permissions not granted on iOS');
+        }
+      }
+
+      // Set up Android notification channel for FCM
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync(FCM_CONFIG.androidChannelId, {
+          name: FCM_CONFIG.androidChannelName,
+          description: FCM_CONFIG.androidChannelDescription,
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
+      }
+
+      // Get push tokens for real device
       if (Device.isDevice) {
-        const token = await Notifications.getExpoPushTokenAsync({
+        // Get Expo Push Token
+        const expoToken = await Notifications.getExpoPushTokenAsync({
           projectId: Constants.expoConfig?.extra?.eas?.projectId,
         });
-        this.expoPushToken = token.data;
-        console.log('Expo Push Token:', token.data);
-        return token.data;
+        this.expoPushToken = expoToken.data;
+        console.log('Expo Push Token:', expoToken.data);
+
+        // Get FCM Token
+        try {
+          const fcmToken = await messaging().getToken();
+          if (fcmToken) {
+            this.fcmToken = fcmToken;
+            console.log('FCM Token:', fcmToken);
+          }
+        } catch (fcmError) {
+          console.error('Error getting FCM token:', fcmError);
+        }
+
+        // Return Expo token for backward compatibility
+        return this.expoPushToken;
       } else {
         console.log('Must use physical device for Push Notifications');
         return null;
@@ -60,6 +115,11 @@ export class NotificationService {
   // Get current push token
   static getPushToken(): string | null {
     return this.expoPushToken;
+  }
+
+  // Get current FCM token
+  static getFCMToken(): string | null {
+    return this.fcmToken;
   }
 
   // Show local notification
@@ -86,12 +146,16 @@ export class NotificationService {
         return false;
       }
 
+      // Set up FCM message handlers
+      this.setupFCMListeners();
+
       // Send push token to your backend using API service
       const response = await api.registerDeviceForNotifications(
         token,
         pushToken,
         userId,
-        Platform.OS === "android" ? "android" : "ios"
+        Platform.OS === "android" ? "android" : "ios",
+        this.fcmToken // Send FCM token as well if available
       );
 
       return response.success;
@@ -99,6 +163,41 @@ export class NotificationService {
       console.error('Error registering device:', error);
       return false;
     }
+  }
+
+  // Set up Firebase Cloud Messaging listeners
+  private static setupFCMListeners() {
+    // Handle FCM messages when app is in foreground
+    messaging().onMessage(async remoteMessage => {
+      console.log('FCM Message received in foreground:', remoteMessage);
+      
+      // Convert FCM message to local notification
+      if (remoteMessage.notification) {
+        await this.showLocalNotification({
+          title: remoteMessage.notification.title || 'New Notification',
+          message: remoteMessage.notification.body || '',
+          data: remoteMessage.data
+        });
+      }
+    });
+
+    // Set background message handler
+    messaging().setBackgroundMessageHandler(async remoteMessage => {
+      console.log('FCM Message handled in the background:', remoteMessage);
+      return Promise.resolve();
+    });
+
+    // Handle notification open events
+    messaging().onNotificationOpenedApp(remoteMessage => {
+      console.log('FCM Notification opened app from background state:', remoteMessage);
+    });
+
+    // Check if app was opened from a notification
+    messaging().getInitialNotification().then(remoteMessage => {
+      if (remoteMessage) {
+        console.log('FCM Notification opened app from quit state:', remoteMessage);
+      }
+    });
   }
 
   // Handle notification received while app is in foreground
@@ -166,4 +265,4 @@ export class NotificationService {
       return null;
     }
   }
-} 
+}

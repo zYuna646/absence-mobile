@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as IntentLauncher from 'expo-intent-launcher';
+import { Platform } from 'react-native';
 import { NotificationService, NotificationData } from '@/services/notificationService';
 import { useUser } from './UserContext';
+import messaging from '@react-native-firebase/messaging';
 
 interface NotificationContextType {
   pushToken: string | null;
@@ -80,6 +82,29 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
     registerDevice();
   }, [userInfo, token, pushToken]);
+  
+  // Listen for FCM token changes
+  useEffect(() => {
+    const fcmTokenListener = messaging().onTokenRefresh(async (newToken) => {
+      console.log('FCM Token refreshed:', newToken);
+      
+      // Re-register device with new FCM token if user is logged in
+      if (userInfo && token && pushToken) {
+        // Register with notification service (for backward compatibility)
+        await NotificationService.registerDevice(token, userInfo.id.toString());
+        
+        // Register with new endpoint
+        const api = require('@/services/api').default;
+        await api.registerDevice(
+          token,
+          newToken,
+          Platform.OS === "android" ? "android" : "ios"
+        );
+      }
+    });
+    
+    return () => fcmTokenListener();
+  }, [userInfo, token, pushToken]);
 
   // Handle notification received while app is in foreground
   useEffect(() => {
@@ -145,4 +170,4 @@ export function useNotification(): NotificationContextType {
     throw new Error('useNotification must be used within a NotificationProvider');
   }
   return context;
-} 
+}

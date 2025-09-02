@@ -11,7 +11,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zychan.makuta",
-      "icon": "./assets/ios/Icon-iPhone-180.png"
+      "icon": "./assets/ios/Icon-iPhone-180.png",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +20,8 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.zychan.makuta",
-      "icon": "./assets/android/mipmap-xxxhdpi/ic_launcher.png"
+      "icon": "./assets/android/mipmap-xxxhdpi/ic_launcher.png",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
