@@ -4,14 +4,14 @@
     "slug": "makuta",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/ios/Icon-iPhone-180.png",
+    "icon": "./assets/ios/AppIcon.appiconset/ItunesArtwork@2x.png",
     "scheme": "makuta",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zychan.makuta",
-      "icon": "./assets/ios/Icon-iPhone-180.png",
+      "icon": "./assets/ios/AppIcon.appiconset/ItunesArtwork@2x.png",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {

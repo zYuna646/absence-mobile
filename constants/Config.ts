@@ -33,6 +33,7 @@ export const ENDPOINTS = {
   ADDITIONAL_ACTIVITIES: "/additional-activities",
   ATTENDANCES: "/attendances",
   REGISTER_DEVICE: "/register-device",
+  NOTIFICATIONS: "/notifications",
 };
 
 // Timeouts

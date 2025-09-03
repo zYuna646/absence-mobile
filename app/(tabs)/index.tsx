@@ -15,6 +15,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { useUser } from "@/context/UserContext";
 import { useThemeColor } from "@/constants/Colors";
 import { api } from "@/services/api";
+import { API_URL, ENDPOINTS } from "@/constants/Config";
 
 // Import reusable components
 import Card from "@/components/ui/Card";
@@ -200,16 +201,84 @@ export default function DashboardScreen() {
     }
   };
 
-  // Fetch statistics when component mounts
+  // Fetch statistics and notifications when component mounts
   useEffect(() => {
-    if (role === "student" && token) {
-      fetchStudentStatistics();
-    } else if (role === "advisor" && token) {
-      fetchAdvisorStatistics();
+    if (token) {
+      if (role === "student") {
+        fetchStudentStatistics();
+      } else if (role === "advisor") {
+        fetchAdvisorStatistics();
+      } else {
+        setLoading(false);
+      }
+      
+      // Fetch notifications for all roles
+      fetchNotifications();
     } else {
       setLoading(false);
     }
   }, [role, token]);
+  
+  // Fetch notifications from API
+  const fetchNotifications = async () => {
+    try {
+      if (!token) return;
+      
+      const response = await api.getNotifications(token);
+      
+      if (response.success && response.data) {
+        // Convert API notification format to app notification format
+        const formattedNotifications: Notification[] = response.data.map(notification => ({
+          id: notification.id.toString(),
+          title: notification.title,
+          message: notification.body,
+          time: formatNotificationDate(notification.created_at),
+          read: notification.read_at !== null,
+          type: notification.type as 'info' | 'warning' | 'success' | 'error',
+          data: notification.data
+        }));
+        
+        setNotifications(formattedNotifications);
+      } else {
+        console.error("Failed to fetch notifications:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+  
+  // Format notification date
+  const formatNotificationDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      
+      // If less than 24 hours ago, show relative time
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      
+      if (diffHours < 24) {
+        if (diffHours < 1) {
+          const diffMinutes = Math.floor(diffMs / (1000 * 60));
+          return `${diffMinutes} menit yang lalu`;
+        } else {
+          return `${Math.floor(diffHours)} jam yang lalu`;
+        }
+      } else if (diffHours < 48) {
+        return 'Kemarin';
+      } else {
+        // Format as date
+        return date.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
+      }
+    } catch (error) {
+      console.error("Error formatting notification date:", error);
+      return dateString;
+    }
+  };
 
   // Fetch student statistics from API
   const fetchStudentStatistics = async () => {
@@ -366,19 +435,36 @@ export default function DashboardScreen() {
   };
 
   // Handle notification click
-  const handleNotificationPress = (notification: Notification) => {
-    // Mark as read
-    setNotifications((prev) =>
-      prev.map((item) =>
-        item.id === notification.id ? { ...item, read: true } : item
-      )
-    );
+  const handleNotificationPress = async (notification: Notification) => {
+    try {
+      if (!notification.read && token) {
+        // Mark as read in API using PATCH method
+        const url = `${API_URL}${ENDPOINTS.NOTIFICATIONS}/${notification.id}/read`;
+        const response = await fetch(url, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          // Update local state
+          setNotifications((prev) =>
+            prev.map((item) =>
+              item.id === notification.id ? { ...item, read: true } : item
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
-  // Mark all notifications as read
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
-  };
+  // Empty function as mark all as read is not needed
+  const handleMarkAllAsRead = () => {};
+
 
   // Handle notification icon press
   const handleNotificationIconPress = () => {
@@ -440,10 +526,18 @@ export default function DashboardScreen() {
   // Handle refresh
   const onRefresh = () => {
     setRefreshing(true);
-    if (role === "student" && token) {
-      fetchStudentStatistics();
-    } else if (role === "advisor" && token) {
-      fetchAdvisorStatistics();
+    if (token) {
+      // Refresh notifications for all roles
+      fetchNotifications();
+      
+      // Refresh role-specific data
+      if (role === "student") {
+        fetchStudentStatistics();
+      } else if (role === "advisor") {
+        fetchAdvisorStatistics();
+      } else {
+        setRefreshing(false);
+      }
     } else {
       setRefreshing(false);
     }

@@ -1,5 +1,6 @@
 import { API_URL, API_TIMEOUT, ENDPOINTS } from "@/constants/Config";
 import { UserRole } from "@/context/UserContext";
+import { formatISO } from "date-fns";
 
 // Types for API responses
 export interface ApiResponse<T> {
@@ -126,6 +127,27 @@ export interface FileData {
     name: string;
     created_at: string;
     updated_at: string;
+  };
+}
+
+// Notification data structure
+export interface NotificationData {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  data: {
+    event: string;
+    activity_id?: number;
+    group_id?: number;
+    [key: string]: any;
+  };
+  read_at: string | null;
+  created_at: string;
+  sent_at: string;
+  creator: {
+    id: number;
+    name: string;
   };
 }
 
@@ -1283,6 +1305,24 @@ export const api = {
     }
   },
 
+  // Get notifications
+  getNotifications: async (
+    token: string
+  ): Promise<ApiResponse<NotificationData[]>> => {
+    try {
+      const url = `${API_URL}${ENDPOINTS.NOTIFICATIONS}`;
+      const options = createRequestOptions("GET", undefined, token);
+      return fetchWithTimeout<NotificationData[]>(url, options);
+    } catch (error) {
+      console.error("Error in getNotifications:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // Placeholder for future notification-related API methods if needed
   // Delete manual sub activity score
   deleteManualSubActivityScore: async (
     token: string,

@@ -9,6 +9,12 @@ export type Notification = {
   time: string;
   read: boolean;
   type?: 'info' | 'warning' | 'success' | 'error';
+  data?: {
+    event: string;
+    activity_id?: number;
+    group_id?: number;
+    [key: string]: any;
+  };
 };
 
 type NotificationPanelProps = {
@@ -48,16 +54,6 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Notifikasi</Text>
-        {getUnreadCount() > 0 && (
-          <TouchableOpacity 
-            style={[styles.markAllButton, { borderColor: colors.tint }]} 
-            onPress={onMarkAllAsRead}
-          >
-            <Text style={[styles.markAllText, { color: colors.tint }]}>
-              Tandai Semua Dibaca
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
       
       {notifications.length === 0 ? (
@@ -180,4 +176,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default NotificationPanel; 
+export default NotificationPanel;
