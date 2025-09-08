@@ -556,45 +556,30 @@ export default function LaporanScreen() {
                                 <Text style={[styles.subActivityItemName, { color: colors.text }]}>
                                   {subActivity.name}
                                 </Text>
-                                <Text style={[styles.subActivityItemScore, { color: colors.text }]}>
-                                  {subActivity.average_score !== null 
-                                    ? `Skor: ${subActivity.average_score.toFixed(2)}` 
-                                    : 'Belum dinilai'}
-                                </Text>
+                                {subActivity.scores.map((scores, scoreIndex) => (
+                                  <View key={`score-${scoreIndex}`} style={styles.advisorCardContainer}>
+                                    <View style={styles.advisorHeaderContainer}>
+                                      <Text style={[styles.advisorType, { color: colors.text }]}>
+                                        Advisor {scores.advisor.type}
+                                      </Text>
+                                      <Text style={[styles.advisorName, { color: colors.text }]}>
+                                        {scores.advisor.name}
+                                      </Text>
+                                    </View>
+                                    <View style={styles.advisorNotesContainer}>
+                                      <Text style={[styles.advisorNotesLabel, { color: colors.text }]}>Catatan:</Text>
+                                      <Text style={[styles.advisorNotesContent, { color: colors.text }]}>
+                                        {scores.notes ?? "Tidak Ada Catatan"}
+                                      </Text>
+                                    </View>
+                                  </View>
+                                ))}
                               </View>
                             ))}
-                            <View style={styles.subActivityCategorySummary}>
-                              <Text style={[styles.subActivityCategorySummaryText, { color: colors.text }]}>
-                                Total Sub Aktivitas: {categoryScore.total_sub_activities}
-                              </Text>
-                              <Text style={[styles.subActivityCategorySummaryText, { color: colors.text }]}>
-                                Skor Kategori: {categoryScore.category_average_score !== null 
-                                  ? categoryScore.category_average_score.toFixed(2) 
-                                  : 'Belum dinilai'}
-                              </Text>
-                            </View>
                           </View>
                         ))}
                         
                         {/* Overall Sub-Activity Summary */}
-                        <View style={styles.overallSubActivitySummary}>
-                          <Text style={[styles.overallSubActivitySummaryTitle, { color: colors.text }]}>
-                            Ringkasan Aktivitas
-                          </Text>
-                          <View style={styles.overallSubActivitySummaryDetails}>
-                            <Text style={[styles.overallSubActivitySummaryText, { color: colors.text }]}>
-                              Total Sub Aktivitas Terpilih: {logbookDetails.check_out.total_selected_sub_activities}
-                            </Text>
-                            <Text style={[styles.overallSubActivitySummaryText, { color: colors.text }]}>
-                              Total Sub Aktivitas Dinilai: {logbookDetails.check_out.total_scored_sub_activities}
-                            </Text>
-                            <Text style={[styles.overallSubActivitySummaryText, { color: colors.text }]}>
-                              Total Skor Sub Aktivitas: {logbookDetails.check_out.total_sub_activity_score !== null 
-                                ? logbookDetails.check_out.total_sub_activity_score.toFixed(2) 
-                                : 'Belum dinilai'}
-                            </Text>
-                          </View>
-                        </View>
                       </>
                     )}
                   </Card>
@@ -1112,5 +1097,44 @@ const styles = StyleSheet.create({
   overallSubActivitySummaryText: {
     fontSize: 14,
     marginBottom: 4,
+  },
+  advisorCardContainer: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  advisorHeaderContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  advisorType: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginRight: 6,
+  },
+  advisorName: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  advisorNotesContainer: {
+    marginTop: 4,
+  },
+  advisorNotesLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  advisorNotesContent: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: "italic",
   },
 });
