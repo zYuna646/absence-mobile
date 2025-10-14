@@ -12,7 +12,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.zychan.makuta",
       "icon": "./assets/ios/AppIcon.appiconset/ItunesArtwork@2x.png",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Aplikasi ini memerlukan akses lokasi Anda untuk fitur absensi dan kunjungan",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplikasi ini memerlukan akses lokasi Anda untuk fitur absensi dan kunjungan"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +33,7 @@
       "output": "static",
       "favicon": "./assets/images/icon.png"
     },
-     "plugins": [
+    "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
@@ -36,7 +41,7 @@
           "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#2F80ED"
         }
       ],
       [
@@ -48,7 +53,8 @@
             "buildToolsVersion": "35.0.0"
           }
         }
-      ]
+      ],
+      "@react-native-firebase/app"
     ],
     "experiments": {
       "typedRoutes": true

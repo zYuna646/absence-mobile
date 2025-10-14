@@ -3,11 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 
@@ -820,6 +820,7 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['bottom', 'left', 'right']}
     >
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <ProfileHeader
@@ -841,6 +842,7 @@ export default function DashboardScreen() {
             tintColor={colors.tint}
           />
         }
+        nestedScrollEnabled={true}
       >
         {showNotifications && (
           <NotificationPanel

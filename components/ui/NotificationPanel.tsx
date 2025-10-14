@@ -63,7 +63,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
           </Text>
         </View>
       ) : (
-        <ScrollView style={styles.notificationList}>
+        <ScrollView style={styles.notificationList} nestedScrollEnabled={true}>
           {notifications.map((notification) => (
             <TouchableOpacity
               key={notification.id}

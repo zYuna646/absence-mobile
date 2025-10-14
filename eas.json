@@ -9,6 +9,9 @@
       "distribution": "internal",
       "android": {
         "gradleCommand": ":app:assembleDebug"
+      },
+      "ios": {
+        "resourceClass": "m1-medium"
       }
     },
     "preview": {
@@ -16,11 +19,17 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "resourceClass": "m1-medium"
       }
     },
     "production": {
       "autoIncrement": true,
       "android": {
+      },
+      "ios": {
+        "resourceClass": "m1-medium"
       }
     }
   },

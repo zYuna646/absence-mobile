@@ -26,7 +26,6 @@ import AccountForm from "@/components/register/AccountForm";
 
 // Types
 type Role = "mahasiswa" | "preseptor_akademik" | "preseptor_klinik" | "";
-type Gender = "Laki-laki" | "Perempuan" | "";
 
 interface RegistrationData {
   // Role step
@@ -34,12 +33,9 @@ interface RegistrationData {
   
   // Biodata step
   name: string;
-  gender: Gender;
-  birthday: string;
   student_id: string;
   group_id: number | null;
   stace_id: number | null; // Changed from stase_id to stace_id
-  phone: string;
   
   // Fields for preceptors
   type: string;
@@ -71,12 +67,9 @@ export default function RegisterScreen() {
     
     // Biodata
     name: "",
-    gender: "",
-    birthday: "",
     student_id: "",
     group_id: null,
     stace_id: null, // Changed from stase_id to stace_id
-    phone: "",
     
     // Fields for preceptors
     type: "",
@@ -132,14 +125,6 @@ export default function RegisterScreen() {
       case 2: // Biodata
         if (!formData.name) {
           Alert.alert("Error", "Nama wajib diisi");
-          return false;
-        }
-        if (!formData.gender) {
-          Alert.alert("Error", "Jenis kelamin wajib dipilih");
-          return false;
-        }
-        if (!formData.birthday) {
-          Alert.alert("Error", "Tanggal lahir wajib diisi");
           return false;
         }
         if (formData.role === "mahasiswa") {
@@ -272,25 +257,11 @@ export default function RegisterScreen() {
       let apiData: any;
       let result;
       
-      // Format birthday in dd-mm-yyyy format
-      // The date is already in the correct format from BiodataForm component
-      // No need to reformat, just validate that it's correct
-      const dateFormatRegex = /^\d{2}-\d{2}-\d{4}$/;
-      if (!dateFormatRegex.test(formData.birthday)) {
-        console.error("Invalid date format:", formData.birthday);
-        Alert.alert("Error", "Format tanggal lahir tidak valid");
-        setIsLoading(false);
-        return;
-      }
-      
       if (formData.role === "mahasiswa") {
         apiData = {
           name: formData.name,
           username: formData.username,
           email: formData.email,
-          phone: formData.phone,
-          birthday: formData.birthday, // already in dd-mm-yyyy format
-          gender: formData.gender,
           student_id: formData.student_id,
           group_id: formData.group_id!,
           password: formData.password
@@ -304,9 +275,6 @@ export default function RegisterScreen() {
           name: formData.name,
           username: formData.username,
           email: formData.email,
-          phone: formData.phone,
-          birthday: formData.birthday, // already in dd-mm-yyyy format
-          gender: formData.gender,
           stace_id: formData.stace_id!, // Changed from stase_id to stace_id
           type: formData.type,
           password: formData.password

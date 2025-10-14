@@ -25,7 +25,6 @@ import {
   GroupData,
 } from "@/services/api";
 import PrimaryButton from "@/components/PrimaryButton";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import Card from "@/components/ui/Card";
 
 // Define local interface for student form
@@ -33,9 +32,6 @@ interface StudentForm {
   name: string;
   username: string;
   email: string;
-  phone: string;
-  birthday: string;
-  gender: string;
   student_id: string;
   group_id: number;
   stase_id: number;
@@ -58,13 +54,13 @@ export default function ProfileScreen() {
     name: "",
     username: "",
     email: "",
-    phone: "",
-    birthday: "",
-    gender: "",
     student_id: "",
     group_id: 0,
     stase_id: 0
   });
+  
+  // Delete account state
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Advisor form state
   const [advisorForm, setAdvisorForm] = useState<AdvisorProfileUpdateData>({
@@ -98,7 +94,6 @@ export default function ProfileScreen() {
   // UI states
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [stases, setStases] = useState<StaseData[]>([]);
   const [loadingStases, setLoadingStases] = useState(false);
 
@@ -134,9 +129,6 @@ export default function ProfileScreen() {
           name: userInfo.name || "",
           username: userInfo.username || "",
           email: userInfo.email || "",
-          phone: userInfo.phone || "",
-          birthday: userInfo.birthday || "",
-          gender: userInfo.gender || "",
           student_id: userInfo.student_id || "",
           group_id: userInfo.group?.id || 0,
           stase_id: userInfo.stace?.id || 0  // Use stace_id from new API response
@@ -263,69 +255,14 @@ export default function ProfileScreen() {
     }));
   };
 
-  // Handle date change from date picker
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowDatePicker(false);
-    }
-
-    if (selectedDate) {
-      const formattedDate = formatDate(selectedDate);
-      
-      if (role === "student") {
-        handleStudentInputChange("birthday", formattedDate);
-      } else if (role === "advisor") {
-        handleAdvisorInputChange("birthday", formattedDate);
-      }
-    }
-  };
-
 console.log(userInfo);
-  // Format date for API
-  const formatDate = (date: Date): string => {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
-  };
-
-  // Format date for display
-  const formatDisplayDate = (dateString: string): string => {
-    if (!dateString) return "";
-    
-    try {
-      // Parse date from dd-mm-yyyy format
-      const [day, month, year] = dateString.split("-");
-      // Create a date object (months are 0-indexed in JavaScript)
-      const date = new Date(Number(year), Number(month) - 1, Number(day));
-      
-      if (isNaN(date.getTime())) {
-        throw new Error("Invalid date");
-      }
-      
-      // Format for display
-      const displayDay = String(date.getDate()).padStart(2, "0");
-      const displayMonth = date.toLocaleString("default", { month: "long" });
-      const displayYear = date.getFullYear();
-      
-      return `${displayDay} ${displayMonth} ${displayYear}`;
-    } catch (error) {
-      console.error("Error formatting display date:", error);
-      return dateString;
-    }
-  };
-
-  // Toggle date picker
-  const toggleDatePicker = () => {
-    setShowDatePicker(!showDatePicker);
-  };
 
   // Handle save for student profile
   const saveStudentProfile = async () => {
     if (!token) return;
 
     // Validate inputs
-    if (!studentForm.name || !studentForm.email || !studentForm.phone) {
+    if (!studentForm.name || !studentForm.email) {
       Alert.alert("Validation Error", "Mohon lengkapi semua field yang diperlukan");
       return;
     }
@@ -348,9 +285,6 @@ console.log(userInfo);
         name: studentForm.name.trim(),
         username: studentForm.username.trim(),
         email: studentForm.email.trim(),
-        phone: studentForm.phone.trim(),
-        birthday: studentForm.birthday,
-        gender: studentForm.gender,
         group_id: studentForm.group_id,
         student_id: studentForm.student_id.trim()
       };
@@ -370,6 +304,9 @@ console.log(userInfo);
       setSaving(false);
     }
   };
+
+  // Handle delete account
+
 
   // Handle save for advisor profile
   const saveAdvisorProfile = async () => {
@@ -407,6 +344,46 @@ console.log(userInfo);
     } finally {
       setSaving(false);
     }
+  };
+
+  // Handle delete account
+  const handleDeleteAccount = async () => {
+    if (!token) return;
+    
+    Alert.alert(
+      "Hapus Akun",
+      "Apakah Anda yakin ingin menghapus akun? Tindakan ini tidak dapat dibatalkan.",
+      [
+        {
+          text: "Batal",
+          style: "cancel"
+        },
+        {
+          text: "Hapus",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setDeletingAccount(true);
+              const response = await api.deleteAccount(token);
+              
+              if (response.success) {
+                Alert.alert("Sukses", "Akun berhasil dihapus");
+                // Logout after successful deletion
+                await api.logout(token);
+                router.replace("/login");
+              } else {
+                Alert.alert("Error", response.message || "Gagal menghapus akun");
+              }
+            } catch (error) {
+              console.error("Error deleting account:", error);
+              Alert.alert("Error", "Terjadi kesalahan saat menghapus akun");
+            } finally {
+              setDeletingAccount(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Handle password update
@@ -554,7 +531,7 @@ console.log(userInfo);
             </View>
 
             <View style={styles.inputRow}>
-              <View style={[styles.inputColumn, { marginRight: 8 }]}>
+              <View style={styles.formGroup}>
                 <Text style={[styles.label, { color: colors.text }]}>Email</Text>
                 <TextInput
                   style={[
@@ -568,76 +545,9 @@ console.log(userInfo);
                   keyboardType="email-address"
                 />
               </View>
-              
-              <View style={[styles.inputColumn, { marginLeft: 8 }]}>
-                <Text style={[styles.label, { color: colors.text }]}>Telepon</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
-                  ]}
-                  placeholder="08xx-xxxx-xxxx"
-                  placeholderTextColor={colors.icon}
-                  value={studentForm.phone}
-                  onChangeText={(text) => handleStudentInputChange("phone", text)}
-                  keyboardType="phone-pad"
-                />
-              </View>
             </View>
 
-            <View style={styles.inputRow}>
-              <View style={[styles.inputColumn, { marginRight: 8 }]}>
-                <Text style={[styles.label, { color: colors.text }]}>Tanggal Lahir</Text>
-                <TouchableOpacity
-                  style={[
-                    styles.input,
-                    styles.dateSelector,
-                    { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }
-                  ]}
-                  onPress={toggleDatePicker}
-                >
-                  <Text style={{ color: studentForm.birthday ? colors.text : colors.icon }}>
-                    {studentForm.birthday ? formatDisplayDate(studentForm.birthday) : "Pilih tanggal"}
-                  </Text>
-                  <Ionicons name="calendar-outline" size={20} color={colors.icon} />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={[styles.inputColumn, { marginLeft: 8 }]}>
-                <Text style={[styles.label, { color: colors.text }]}>Jenis Kelamin</Text>
-                <View style={styles.genderContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.genderButton,
-                      studentForm.gender === "Laki-laki" && { backgroundColor: colors.tint + '20', borderColor: colors.tint }
-                    ]}
-                    onPress={() => handleStudentInputChange("gender", "Laki-laki")}
-                  >
-                    <Text style={[
-                      styles.genderText,
-                      { color: studentForm.gender === "Laki-laki" ? colors.tint : colors.text }
-                    ]}>
-                      L
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[
-                      styles.genderButton,
-                      studentForm.gender === "Perempuan" && { backgroundColor: colors.tint + '20', borderColor: colors.tint }
-                    ]}
-                    onPress={() => handleStudentInputChange("gender", "Perempuan")}
-                  >
-                    <Text style={[
-                      styles.genderText,
-                      { color: studentForm.gender === "Perempuan" ? colors.tint : colors.text }
-                    ]}>
-                      P
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+
 
             <PrimaryButton
               label="Simpan Profil"
@@ -646,6 +556,17 @@ console.log(userInfo);
               disabled={saving}
               style={styles.saveButton}
             />
+            
+            <TouchableOpacity
+              style={[styles.deleteButton, { borderColor: colors.error }]}
+              onPress={handleDeleteAccount}
+              disabled={deletingAccount}
+            >
+              <Text style={[styles.deleteButtonText, { color: colors.error }]}>
+                {deletingAccount ? "Menghapus..." : "Hapus Akun"}
+              </Text>
+              {deletingAccount && <ActivityIndicator size="small" color={colors.error} style={{ marginLeft: 8 }} />}
+            </TouchableOpacity>
           </View>
         </Card>
 
@@ -1267,21 +1188,7 @@ console.log(userInfo);
           {renderPasswordForm()}
         </ScrollView>
         
-        {/* Date picker modal */}
-        {showDatePicker && (
-          <DateTimePicker
-            value={
-              role === "student" && studentForm.birthday
-                ? parseDate(studentForm.birthday)
-                : role === "advisor" && advisorForm.birthday
-                ? parseDate(advisorForm.birthday)
-                : new Date()
-            }
-            mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={handleDateChange}
-          />
-        )}
+        {/* Date picker modal removed */}
       </View>
     </KeyboardAvoidingView>
   );
@@ -1514,6 +1421,19 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 8,
+  },
+  deleteButton: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   eyeIcon: {
     position: 'absolute',

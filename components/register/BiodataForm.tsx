@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useThemeColor } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
@@ -14,12 +13,9 @@ interface BiodataFormProps {
   formData: {
     role: string;
     name: string;
-    gender: string;
-    birthday: string;
     student_id: string;
     group_id: number | null;
     stace_id: number | null; // Changed from stase_id to stace_id
-    phone: string;
     // Fields for advisor
     type: string;
     npwp: string;
@@ -36,7 +32,6 @@ interface BiodataFormProps {
 const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
   const colors = useThemeColor();
   const colorScheme = useColorScheme();
-  const [showDatePicker, setShowDatePicker] = useState(false);
   
   // State for API data
   const [stases, setStases] = useState<StaseData[]>([]);
@@ -108,66 +103,7 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
   // Placeholder text color
   const placeholderTextColor = colorScheme === "dark" ? "#9BA1A6" : "#687076";
   
-  // Handle date change
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-    
-    if (selectedDate) {
-      try {
-        // Format date as dd-mm-yyyy
-        const day = String(selectedDate.getDate()).padStart(2, '0');
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const year = selectedDate.getFullYear();
-        onChange("birthday", `${day}-${month}-${year}`);
-      } catch (error) {
-        console.error("Error formatting date:", error);
-        // Fallback to simple formatting
-        const date = new Date(selectedDate);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        onChange("birthday", `${day}-${month}-${year}`);
-      }
-    }
-  };
-  
-  // Open date picker
-  const openDatePicker = () => {
-    setShowDatePicker(true);
-  };
-  
-  // Close date picker (for iOS)
-  const closeDatePicker = () => {
-    setShowDatePicker(false);
-  };
-  
-  // Birthday display format
-  const formatDisplayDate = (dateString: string) => {
-    if (!dateString) return "";
-    
-    try {
-      // Parse date from dd-mm-yyyy format
-      const [day, month, year] = dateString.split('-');
-      // Create a date object (months are 0-indexed in JavaScript)
-      const date = new Date(Number(year), Number(month) - 1, Number(day));
-      
-      if (isNaN(date.getTime())) {
-        throw new Error("Invalid date");
-      }
-      
-      // Format for display
-      const displayDay = String(date.getDate()).padStart(2, '0');
-      const displayMonth = date.toLocaleString('default', { month: 'long' });
-      const displayYear = date.getFullYear();
-      
-      return `${displayDay} ${displayMonth} ${displayYear}`;
-    } catch (error) {
-      console.error("Error formatting display date:", error);
-      return dateString;
-    }
-  };
+  // All date-related functions have been removed
 
   // Loading indicator for API data
   const renderLoadingOrError = () => {
@@ -391,88 +327,6 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
         onChangeText={(value) => onChange("name", value)}
         inputStyle={inputStyle}
         placeholderTextColor={placeholderTextColor}
-        disabled={false}
-      />
-      
-      <View style={styles.spacer} />
-      
-      <Text style={[styles.label, { color: colors.text }]}>Jenis Kelamin</Text>
-      <View style={pickerContainerStyle}>
-        <Picker
-          selectedValue={formData.gender}
-          onValueChange={(value) => onChange("gender", value)}
-          style={{ color: colors.text }}
-          dropdownIconColor={colors.icon}
-        >
-          <Picker.Item 
-            label="Pilih Jenis Kelamin" 
-            value="" 
-            color={placeholderTextColor} 
-          />
-          <Picker.Item label="Laki-laki" value="Laki-laki" />
-          <Picker.Item label="Perempuan" value="Perempuan" />
-        </Picker>
-      </View>
-      
-      <Text style={[styles.label, { color: colors.text }]}>Tanggal Lahir</Text>
-      <TouchableOpacity 
-        style={[
-          styles.datePickerButton,
-          { 
-            backgroundColor: colors.inputBackground,
-            borderColor: colors.inputBorder,
-          }
-        ]}
-        onPress={openDatePicker}
-      >
-        <Text 
-          style={[
-            styles.datePickerText, 
-            { 
-              color: formData.birthday ? colors.text : placeholderTextColor 
-            }
-          ]}
-        >
-          {formData.birthday 
-            ? formatDisplayDate(formData.birthday) 
-            : "Pilih Tanggal Lahir"
-          }
-        </Text>
-        <Ionicons name="calendar" size={20} color={colors.icon} />
-      </TouchableOpacity>
-      
-      {showDatePicker && (
-        <>
-          <DateTimePicker
-            value={formData.birthday ? new Date(formData.birthday) : new Date()}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleDateChange}
-            maximumDate={new Date()}
-          />
-          
-          {Platform.OS === 'ios' && (
-            <View style={styles.iosDatePickerActions}>
-              <TouchableOpacity 
-                onPress={closeDatePicker}
-                style={[styles.iosButton, { backgroundColor: colors.tint }]}
-              >
-                <Text style={styles.iosButtonText}>Done</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </>
-      )}
-      
-      <View style={styles.spacer} />
-      
-      <FloatingLabelInput
-        label="Nomor Telepon"
-        value={formData.phone}
-        onChangeText={(value) => onChange("phone", value)}
-        inputStyle={inputStyle}
-        placeholderTextColor={placeholderTextColor}
-        keyboardType="phone-pad"
         disabled={false}
       />
 

@@ -428,6 +428,13 @@ export const api = {
     const options = createRequestOptions("POST", { username, password });
     return fetchWithTimeout<LoginResponseData>(url, options);
   },
+  
+  // Delete account
+  deleteAccount: async (token: string): Promise<ApiResponse<null>> => {
+    const url = `${API_URL}/auth/delete-account`;
+    const options = createRequestOptions("DELETE", undefined, token);
+    return fetchWithTimeout<null>(url, options);
+  },
 
   // Additional Activities
   getAdditionalActivities: async (
