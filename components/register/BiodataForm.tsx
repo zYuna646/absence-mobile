@@ -244,7 +244,7 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
         {formData.role === "preseptor_akademik" && (
           <>
             <FloatingLabelInput
-              label="NIK"
+              label="NIK (Optional - Untuk administratif kampus)"
               value={formData.nip}
               onChangeText={(value) => onChange("nip", value)}
               inputStyle={inputStyle}
@@ -255,7 +255,7 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
             <View style={styles.spacer} />
             
             <FloatingLabelInput
-              label="NPWP"
+              label="NPWP (Optional - Untuk administratif kampus)"
               value={formData.npwp}
               onChangeText={(value) => onChange("npwp", value)}
               inputStyle={inputStyle}
@@ -269,7 +269,7 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
         {formData.role === "preseptor_klinik" && (
           <>
             <FloatingLabelInput
-              label="NIK"
+              label="NIK (Optional - Untuk administratif kampus)"
               value={formData.nip}
               onChangeText={(value) => onChange("nip", value)}
               inputStyle={inputStyle}
@@ -280,7 +280,7 @@ const BiodataForm: React.FC<BiodataFormProps> = ({ formData, onChange }) => {
             <View style={styles.spacer} />
             
             <FloatingLabelInput
-              label="NPWP"
+              label="NPWP (Optional - Untuk administratif kampus)"
               value={formData.npwp}
               onChangeText={(value) => onChange("npwp", value)}
               inputStyle={inputStyle}

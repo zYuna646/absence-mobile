@@ -318,10 +318,11 @@ console.log(userInfo);
       return;
     }
 
-    if (advisorForm.type === "academic" && (!advisorForm.npwp || !advisorForm.nip)) {
-      Alert.alert("Validation Error", "NPWP and NIP are required for academic advisors");
-      return;
-    }
+    // NIP dan NPWP tidak lagi wajib diisi
+    // if (advisorForm.type === "academic" && (!advisorForm.npwp || !advisorForm.nip)) {
+    //   Alert.alert("Validation Error", "NPWP and NIP are required for academic advisors");
+    //   return;
+    // }
 
     if (advisorForm.type === "clinic" && (!advisorForm.location || !advisorForm.room)) {
       Alert.alert("Validation Error", "Location and room are required for clinic advisors");
@@ -955,7 +956,7 @@ console.log(userInfo);
         {advisorForm.type === "academic" && (
           <>
             <View style={styles.formGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>NPWP</Text>
+              <Text style={[styles.label, { color: colors.text }]}>NPWP <Text style={{ color: colors.icon, fontSize: 12 }}>(Optional - Untuk administratif kampus)</Text></Text>
               <TextInput
                 style={[
                   styles.input,
@@ -969,7 +970,7 @@ console.log(userInfo);
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>NIP</Text>
+              <Text style={[styles.label, { color: colors.text }]}>NIP <Text style={{ color: colors.icon, fontSize: 12 }}>(Optional - Untuk administratif kampus)</Text></Text>
               <TextInput
                 style={[
                   styles.input,

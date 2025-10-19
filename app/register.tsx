@@ -141,27 +141,29 @@ export default function RegisterScreen() {
             Alert.alert("Error", "Stase wajib dipilih");
             return false;
           }
-          if (!formData.nip) {
-            Alert.alert("Error", "NIP wajib diisi");
-            return false;
-          }
-          if (!formData.npwp) {
-            Alert.alert("Error", "NPWP wajib diisi");
-            return false;
-          }
+          // NIP dan NPWP tidak lagi wajib diisi
+          // if (!formData.nip) {
+          //   Alert.alert("Error", "NIP wajib diisi");
+          //   return false;
+          // }
+          // if (!formData.npwp) {
+          //   Alert.alert("Error", "NPWP wajib diisi");
+          //   return false;
+          // }
         } else if (formData.role === "preseptor_klinik") {
           if (formData.stace_id === null) {
             Alert.alert("Error", "Stase wajib dipilih");
             return false;
           }
-          if (!formData.nip) {
-            Alert.alert("Error", "NIK wajib diisi");
-            return false;
-          }
-          if (!formData.npwp) {
-            Alert.alert("Error", "NPWP wajib diisi");
-            return false;
-          }
+          // NIP dan NPWP tidak lagi wajib diisi
+          // if (!formData.nip) {
+          //   Alert.alert("Error", "NIK wajib diisi");
+          //   return false;
+          // }
+          // if (!formData.npwp) {
+          //   Alert.alert("Error", "NPWP wajib diisi");
+          //   return false;
+          // }
           if (!formData.location) {
             Alert.alert("Error", "Lokasi wajib diisi");
             return false;
