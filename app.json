@@ -16,7 +16,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Aplikasi ini memerlukan akses lokasi Anda untuk fitur absensi dan kunjungan",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplikasi ini memerlukan akses lokasi Anda untuk fitur absensi dan kunjungan"
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplikasi ini memerlukan akses lokasi Anda untuk fitur absensi dan kunjungan",
+        "NSCameraUsageDescription": "Aplikasi ini memerlukan akses kamera Anda untuk fitur absensi dan kunjungan sebagai bukti telah melakukan absensi atau kunjungan"
       }
     },
     "android": {
@@ -26,7 +27,13 @@
       },
       "package": "com.zychan.makuta",
       "icon": "./assets/android/mipmap-xxxhdpi/ic_launcher.png",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": ["CAMERA"],
+      "intentFilters": [
+        {
+          "autoVerify": true
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
