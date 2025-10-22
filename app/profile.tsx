@@ -313,7 +313,7 @@ console.log(userInfo);
     if (!token) return;
 
     // Validate inputs
-    if (!advisorForm.name || !advisorForm.email || !advisorForm.phone) {
+    if (!advisorForm.name || !advisorForm.email) {
       Alert.alert("Validation Error", "Please fill in all required fields");
       return;
     }
@@ -806,76 +806,11 @@ console.log(userInfo);
           />
         </View>
 
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Phone</Text>
-          <TextInput
-            style={[
-              styles.input,
-              { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.inputBorder }
-            ]}
-            placeholder="Enter your phone number"
-            placeholderTextColor={colors.icon}
-            value={advisorForm.phone}
-            onChangeText={(text) => handleAdvisorInputChange("phone", text)}
-            keyboardType="phone-pad"
-          />
-        </View>
 
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Birthday</Text>
-          <TouchableOpacity
-            style={[
-              styles.input,
-              styles.dateSelector,
-              { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }
-            ]}
-            onPress={toggleDatePicker}
-          >
-            <Text style={{ color: advisorForm.birthday ? colors.text : colors.icon }}>
-              {advisorForm.birthday ? formatDisplayDate(advisorForm.birthday) : "Select your birthday"}
-            </Text>
-            <Ionicons name="calendar-outline" size={20} color={colors.icon} />
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.text }]}>Gender</Text>
-          <View style={styles.radioGroup}>
-            <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => handleAdvisorInputChange("gender", "Laki-laki")}
-            >
-              <View
-                style={[
-                  styles.radioCircle,
-                  advisorForm.gender === "Laki-laki" && { borderColor: colors.tint }
-                ]}
-              >
-                {advisorForm.gender === "Laki-laki" && (
-                  <View style={[styles.selectedRadio, { backgroundColor: colors.tint }]} />
-                )}
-              </View>
-              <Text style={[styles.radioLabel, { color: colors.text }]}>Laki-laki</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => handleAdvisorInputChange("gender", "Perempuan")}
-            >
-              <View
-                style={[
-                  styles.radioCircle,
-                  advisorForm.gender === "Perempuan" && { borderColor: colors.tint }
-                ]}
-              >
-                {advisorForm.gender === "Perempuan" && (
-                  <View style={[styles.selectedRadio, { backgroundColor: colors.tint }]} />
-                )}
-              </View>
-              <Text style={[styles.radioLabel, { color: colors.text }]}>Perempuan</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
+
+
 
         <View style={styles.formGroup}>
           <Text style={[styles.label, { color: colors.text }]}>Advisor Type</Text>
