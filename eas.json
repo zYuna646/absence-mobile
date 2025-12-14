@@ -26,7 +26,16 @@
     },
     "production": {
       "autoIncrement": true,
+      "android": {},
+      "ios": {
+        "resourceClass": "m1-medium"
+      }
+    },
+    "productionApk": {
+      "autoIncrement": true,
       "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       },
       "ios": {
         "resourceClass": "m1-medium"
