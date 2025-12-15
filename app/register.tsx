@@ -264,6 +264,9 @@ export default function RegisterScreen() {
           name: formData.name,
           username: formData.username,
           email: formData.email,
+          phone: "",
+          birthday: "",
+          gender: "",
           student_id: formData.student_id,
           group_id: formData.group_id!,
           password: formData.password
@@ -277,6 +280,9 @@ export default function RegisterScreen() {
           name: formData.name,
           username: formData.username,
           email: formData.email,
+          phone: "",
+          birthday: "",
+          gender: "",
           stace_id: formData.stace_id!, // Changed from stase_id to stace_id
           type: formData.type,
           password: formData.password
