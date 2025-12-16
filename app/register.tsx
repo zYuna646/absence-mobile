@@ -6,7 +6,7 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  Text
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
@@ -18,6 +18,7 @@ import { api } from "@/services/api";
 import StepIndicator from "@/components/ui/StepIndicator";
 import PrimaryButton from "@/components/PrimaryButton";
 import AppLogo from "@/components/AppLogo";
+import AppModal from "@/components/ui/AppModal";
 
 // Registration step screens
 import RoleSelection from "@/components/register/RoleSelection";
@@ -56,6 +57,12 @@ export default function RegisterScreen() {
   const colorScheme = useColorScheme();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState<string>("");
+  const [modalMessage, setModalMessage] = useState<string>("");
+  const [modalConfirmLabel, setModalConfirmLabel] = useState<string>("OK");
+  const [modalConfirmAction, setModalConfirmAction] = useState<(() => void) | null>(null);
+  const [navigateToLogin, setNavigateToLogin] = useState(false);
   
   // Define the steps
   const steps = ["Pilih Role", "Biodata", "Akun"];
@@ -112,33 +119,48 @@ export default function RegisterScreen() {
     setFormData(updatedData);
   };
   
+  const showModal = (title: string, message: string, confirmLabel: string = "OK", confirmAction: (() => void) | null = null) => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalConfirmLabel(confirmLabel);
+    setModalConfirmAction(confirmAction);
+    setModalVisible(true);
+  };
+  
+  React.useEffect(() => {
+    if (navigateToLogin && !modalVisible) {
+      router.replace("/login");
+      setNavigateToLogin(false);
+    }
+  }, [navigateToLogin, modalVisible]);
+  
   // Validate current step
   const validateCurrentStep = (): boolean => {
     switch (currentStep) {
       case 1: // Role selection
         if (!formData.role) {
-          Alert.alert("Error", "Silakan pilih role Anda");
+          showModal("Error", "Silakan pilih role Anda");
           return false;
         }
         return true;
         
       case 2: // Biodata
         if (!formData.name) {
-          Alert.alert("Error", "Nama wajib diisi");
+          showModal("Error", "Nama wajib diisi");
           return false;
         }
         if (formData.role === "mahasiswa") {
           if (!formData.student_id) {
-            Alert.alert("Error", "NIM wajib diisi");
+            showModal("Error", "NIM wajib diisi");
             return false;
           }
           if (formData.group_id === null) {
-            Alert.alert("Error", "Kelompok wajib dipilih");
+            showModal("Error", "Kelompok wajib dipilih");
             return false;
           }
         } else if (formData.role === "preseptor_akademik") {
           if (formData.stace_id === null) {
-            Alert.alert("Error", "Stase wajib dipilih");
+            showModal("Error", "Stase wajib dipilih");
             return false;
           }
           // NIP dan NPWP tidak lagi wajib diisi
@@ -152,7 +174,7 @@ export default function RegisterScreen() {
           // }
         } else if (formData.role === "preseptor_klinik") {
           if (formData.stace_id === null) {
-            Alert.alert("Error", "Stase wajib dipilih");
+            showModal("Error", "Stase wajib dipilih");
             return false;
           }
           // NIP dan NPWP tidak lagi wajib diisi
@@ -165,11 +187,11 @@ export default function RegisterScreen() {
           //   return false;
           // }
           if (!formData.location) {
-            Alert.alert("Error", "Lokasi wajib diisi");
+            showModal("Error", "Lokasi wajib diisi");
             return false;
           }
           if (!formData.room) {
-            Alert.alert("Error", "Ruangan wajib diisi");
+            showModal("Error", "Ruangan wajib diisi");
             return false;
           }
         }
@@ -177,15 +199,15 @@ export default function RegisterScreen() {
         
       case 3: // Account
         if (!formData.email) {
-          Alert.alert("Error", "Email wajib diisi");
+          showModal("Error", "Email wajib diisi");
           return false;
         }
         if (!formData.username) {
-          Alert.alert("Error", "Username wajib diisi");
+          showModal("Error", "Username wajib diisi");
           return false;
         }
         if (!formData.password) {
-          Alert.alert("Error", "Password wajib diisi");
+          showModal("Error", "Password wajib diisi");
           return false;
         }
         
@@ -199,28 +221,28 @@ export default function RegisterScreen() {
         };
         
         if (!passwordValidation.minLength) {
-          Alert.alert("Error", "Password minimal 8 karakter");
+          showModal("Error", "Password minimal 8 karakter");
           return false;
         }
         if (!passwordValidation.hasLower) {
-          Alert.alert("Error", "Password harus mengandung huruf kecil");
+          showModal("Error", "Password harus mengandung huruf kecil");
           return false;
         }
         if (!passwordValidation.hasUpper) {
-          Alert.alert("Error", "Password harus mengandung huruf besar");
+          showModal("Error", "Password harus mengandung huruf besar");
           return false;
         }
         if (!passwordValidation.hasNumber) {
-          Alert.alert("Error", "Password harus mengandung angka");
+          showModal("Error", "Password harus mengandung angka");
           return false;
         }
         if (!passwordValidation.hasSpecial) {
-          Alert.alert("Error", "Password harus mengandung karakter spesial (@$!%*?&)");
+          showModal("Error", "Password harus mengandung karakter spesial (@$!%*?&)");
           return false;
         }
         
         if (formData.password !== formData.confirmPassword) {
-          Alert.alert("Error", "Password dan konfirmasi password tidak cocok");
+          showModal("Error", "Password dan konfirmasi password tidak cocok");
           return false;
         }
         return true;
@@ -316,15 +338,11 @@ export default function RegisterScreen() {
       }
       
       // Show success message
-      Alert.alert(
-        "Pendaftaran Berhasil", 
+      showModal(
+        "Pendaftaran Berhasil",
         result.message || "Akun Anda telah berhasil dibuat. Silakan login.",
-        [
-          { 
-            text: "OK", 
-            onPress: () => router.replace("/login") 
-          }
-        ]
+        "Login",
+        () => setNavigateToLogin(true)
       );
     } catch (error) {
       // Log the error for debugging
@@ -332,8 +350,8 @@ export default function RegisterScreen() {
       
       // Show error message with more details when available
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      Alert.alert(
-        "Pendaftaran Gagal", 
+      showModal(
+        "Pendaftaran Gagal",
         `Terjadi kesalahan saat mendaftarkan akun Anda: ${errorMessage}`
       );
     } finally {
@@ -410,6 +428,25 @@ export default function RegisterScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      
+      <AppModal
+        visible={modalVisible}
+        title={modalTitle}
+        onClose={() => setModalVisible(false)}
+      >
+        <Text style={{ color: colors.text, fontSize: 14, marginBottom: 16 }}>
+          {modalMessage}
+        </Text>
+        <PrimaryButton
+          label={modalConfirmLabel}
+          onPress={() => {
+            if (modalConfirmAction) {
+              modalConfirmAction();
+            }
+            setModalVisible(false);
+          }}
+        />
+      </AppModal>
     </SafeAreaView>
   );
 }

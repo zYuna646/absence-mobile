@@ -744,13 +744,12 @@ export const api = {
       stace_id: Number(data.stace_id), // Changed from stase_id to stace_id
       type: data.type,
       password: data.password,
+      npwp: data.npwp?.trim() || "",
+      nip: data.nip?.trim() || "",
     };
 
     // Add specific fields based on preceptor type
-    if (data.type === "academic") {
-      sanitizedData.npwp = data.npwp?.trim() || "";
-      sanitizedData.nip = data.nip?.trim() || "";
-    } else if (data.type === "clinic") {
+    if (data.type === "clinic") {
       sanitizedData.location = data.location?.trim() || "";
       sanitizedData.room = data.room?.trim() || "";
     }

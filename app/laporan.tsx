@@ -7,9 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
-  Alert,
   RefreshControl,
-  Modal,
   Image,
   Dimensions,
 } from "react-native";
@@ -22,6 +20,7 @@ import { api, ActivityData } from "@/services/api";
 import { useLocalSearchParams, router } from "expo-router";
 import Card from "@/components/ui/Card";
 import PrimaryButton from "@/components/PrimaryButton";
+import AppModal from "@/components/ui/AppModal";
 
 interface LogbookEntry {
   check_in_id: number;
@@ -340,15 +339,32 @@ export default function LaporanScreen() {
     const showCheckOutButton =
       item.status === "incomplete" && isToday(item.check_in_date);
 
+    const renderTitle = (
+      <View style={styles.titleRow}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>
+          {formatDate(item.check_in_date)}
+        </Text>
+        <TouchableOpacity
+          style={styles.detailButton}
+          onPress={() => openLogbookDetails(item.check_in_id)}
+        >
+          <Ionicons
+            name="information-circle-outline"
+            size={18}
+            color={colors.tint}
+          />
+          <Text style={[styles.detailText, { color: colors.tint }]}>
+            Detail
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+
     return (
-      <TouchableOpacity 
-        style={styles.logbookItem}
-        onPress={() => openLogbookDetails(item.check_in_id)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.logbookHeader}>
-          <Text style={[styles.logbookDate, { color: colors.text }]}>
-            {formatDate(item.check_in_date)}
+      <Card title={renderTitle}>
+        <View style={styles.statusRow}>
+          <Text style={[styles.statusLabel, { color: colors.text }]}>
+            Status:
           </Text>
           <View
             style={[
@@ -359,7 +375,7 @@ export default function LaporanScreen() {
             <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
           </View>
         </View>
-        
+
         <View style={styles.logbookTimeContainer}>
           <View style={styles.timeSection}>
             <Text style={[styles.timeSectionLabel, { color: colors.text }]}>
@@ -369,7 +385,7 @@ export default function LaporanScreen() {
               {formatTime(item.check_in_time)}
             </Text>
           </View>
-          
+
           <View style={styles.timeSection}>
             <Text style={[styles.timeSectionLabel, { color: colors.text }]}>
               Check-out:
@@ -379,7 +395,7 @@ export default function LaporanScreen() {
             </Text>
           </View>
         </View>
-        
+
         {showCheckOutButton && (
           <TouchableOpacity
             style={[styles.checkOutButton, { backgroundColor: colors.tint }]}
@@ -394,207 +410,189 @@ export default function LaporanScreen() {
             <Text style={styles.actionButtonText}>Absen Pulang</Text>
           </TouchableOpacity>
         )}
-      </TouchableOpacity>
+      </Card>
     );
   };
 
   // Render logbook details modal
   const renderLogbookDetailsModal = () => {
     return (
-      <Modal
+      <AppModal
         visible={modalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={closeLogbookDetails}
+        title="Detail Logbook"
+        onClose={closeLogbookDetails}
+        scroll
+        maxHeight="90%"
       >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                Detail Logbook
-              </Text>
-              <TouchableOpacity onPress={closeLogbookDetails} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            
-            {loadingDetails ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.tint} />
-                <Text style={[styles.loadingText, { color: colors.text }]}>
-                  Loading details...
+        {loadingDetails ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.tint} />
+            <Text style={[styles.loadingText, { color: colors.text }]}>
+              Loading details...
+            </Text>
+          </View>
+        ) : logbookDetails ? (
+          <>
+            <Card title="Informasi Kegiatan">
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.text }]}>Mahasiswa:</Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
+                  {logbookDetails.student.name}
                 </Text>
               </View>
-            ) : logbookDetails ? (
-              <ScrollView style={styles.detailsScrollView}>
-                {/* Student and Activity Info */}
-                <Card title="Informasi Kegiatan">
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.text }]}>Mahasiswa:</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {logbookDetails.student.name}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.text }]}>NIM:</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {logbookDetails.student.nim}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.text }]}>Kelompok:</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {logbookDetails.student.group_name}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.text }]}>Kegiatan:</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {logbookDetails.activity.name}
-                    </Text>
-                  </View>
-                </Card>
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.text }]}>NIM:</Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
+                  {logbookDetails.student.nim}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.text }]}>Kelompok:</Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
+                  {logbookDetails.student.group_name}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.text }]}>Kegiatan:</Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
+                  {logbookDetails.activity.name}
+                </Text>
+              </View>
+            </Card>
 
-                {/* Check-in Info */}
-                <Card title="Check-in">
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.text }]}>Tanggal:</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {formatDate(logbookDetails.check_in.date)}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.text }]}>Waktu:</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {formatTime(logbookDetails.check_in.check_time)}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.text }]}>Lokasi:</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {logbookDetails.check_in.address}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.text }]}>Koordinat:</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {logbookDetails.check_in.latitude}, {logbookDetails.check_in.longitude}
-                    </Text>
-                  </View>
-                  
-                  <Text style={[styles.photoLabel, { color: colors.text, marginTop: 12 }]}>
-                    Foto Check-in:
+            <Card title="Check-in">
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.text }]}>Tanggal:</Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
+                  {formatDate(logbookDetails.check_in.date)}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.text }]}>Waktu:</Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
+                  {formatTime(logbookDetails.check_in.check_time)}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.text }]}>Lokasi:</Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
+                  {logbookDetails.check_in.address}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.text }]}>Koordinat:</Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
+                  {logbookDetails.check_in.latitude}, {logbookDetails.check_in.longitude}
+                </Text>
+              </View>
+              
+              <Text style={[styles.photoLabel, { color: colors.text, marginTop: 12 }]}>
+                Foto Check-in:
+              </Text>
+              <View style={styles.imageContainer}>
+                <Image
+                  source={{ uri: logbookDetails.check_in.photo }}
+                  style={styles.detailPhoto}
+                  resizeMode="cover"
+                />
+              </View>
+            </Card>
+
+            {logbookDetails.check_out && (
+              <Card title="Check-out">
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: colors.text }]}>Waktu:</Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
+                    {formatTime(logbookDetails.check_out.check_time)}
                   </Text>
-                  <View style={styles.imageContainer}>
-                    <Image
-                      source={{ uri: logbookDetails.check_in.photo }}
-                      style={styles.detailPhoto}
-                      resizeMode="cover"
-                    />
-                  </View>
-                </Card>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: colors.text }]}>Lokasi:</Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
+                    {logbookDetails.check_out.address}
+                  </Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: colors.text }]}>Koordinat:</Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
+                    {logbookDetails.check_out.latitude}, {logbookDetails.check_out.longitude}
+                  </Text>
+                </View>
+                
+                <Text style={[styles.photoLabel, { color: colors.text, marginTop: 12 }]}>
+                  Deskripsi:
+                </Text>
+                <Text style={[styles.descriptionText, { color: colors.text }]}>
+                  {logbookDetails.check_out.description}
+                </Text>
+                
+                <Text style={[styles.photoLabel, { color: colors.text, marginTop: 12 }]}>
+                  Foto Check-out:
+                </Text>
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={{ uri: logbookDetails.check_out.photo }}
+                    style={styles.detailPhoto}
+                    resizeMode="cover"
+                  />
+                </View>
 
-                {/* Check-out Info (if available) */}
-                {logbookDetails.check_out && (
-                  <Card title="Check-out">
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.text }]}>Waktu:</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>
-                        {formatTime(logbookDetails.check_out.check_time)}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.text }]}>Lokasi:</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>
-                        {logbookDetails.check_out.address}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.text }]}>Koordinat:</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>
-                        {logbookDetails.check_out.latitude}, {logbookDetails.check_out.longitude}
-                      </Text>
-                    </View>
-                    
+                {logbookDetails.check_out.sub_activity_scores_grouped && 
+                 logbookDetails.check_out.sub_activity_scores_grouped.length > 0 && (
+                  <>
                     <Text style={[styles.photoLabel, { color: colors.text, marginTop: 12 }]}>
-                      Deskripsi:
+                      Aktivitas Tambahan
                     </Text>
-                    <Text style={[styles.descriptionText, { color: colors.text }]}>
-                      {logbookDetails.check_out.description}
-                    </Text>
-                    
-                    <Text style={[styles.photoLabel, { color: colors.text, marginTop: 12 }]}>
-                      Foto Check-out:
-                    </Text>
-                    <View style={styles.imageContainer}>
-                      <Image
-                        source={{ uri: logbookDetails.check_out.photo }}
-                        style={styles.detailPhoto}
-                        resizeMode="cover"
-                      />
-                    </View>
-
-                    {/* Sub-Activity Scores */}
-                    {logbookDetails.check_out.sub_activity_scores_grouped && 
-                     logbookDetails.check_out.sub_activity_scores_grouped.length > 0 && (
-                      <>
-                        <Text style={[styles.photoLabel, { color: colors.text, marginTop: 12 }]}>
-                          Aktivitas Tambahan
-                        </Text>
-                        {logbookDetails.check_out.sub_activity_scores_grouped.map((categoryScore, index) => (
-                          <View key={`category-${index}`} style={styles.subActivityCategoryContainer}>
-                            <View style={styles.subActivityCategoryHeader}>
-                              <Text style={[styles.subActivityCategoryName, { color: colors.text }]}>
-                                {categoryScore.category.name}
-                              </Text>
-                              <Text style={[styles.subActivityCategoryPercentage, { color: colors.text }]}>
-                                {categoryScore.category.percentage}%
-                              </Text>
-                            </View>
-                            {categoryScore.sub_activities.map((subActivity, subIndex) => (
-                              <View key={`sub-activity-${subIndex}`} style={styles.subActivityItemContainer}>
-                                <Text style={[styles.subActivityItemName, { color: colors.text }]}>
-                                  {subActivity.name}
-                                </Text>
-                                {subActivity.scores.map((scores, scoreIndex) => (
-                                  <View key={`score-${scoreIndex}`} style={styles.advisorCardContainer}>
-                                    <View style={styles.advisorHeaderContainer}>
-                                      <Text style={[styles.advisorType, { color: colors.text }]}>
-                                        Advisor {scores.advisor.type}
-                                      </Text>
-                                      <Text style={[styles.advisorName, { color: colors.text }]}>
-                                        {scores.advisor.name}
-                                      </Text>
-                                    </View>
-                                    <View style={styles.advisorNotesContainer}>
-                                      <Text style={[styles.advisorNotesLabel, { color: colors.text }]}>Catatan:</Text>
-                                      <Text style={[styles.advisorNotesContent, { color: colors.text }]}>
-                                        {scores.notes ?? "Tidak Ada Catatan"}
-                                      </Text>
-                                    </View>
-                                  </View>
-                                ))}
+                    {logbookDetails.check_out.sub_activity_scores_grouped.map((categoryScore, index) => (
+                      <View key={`category-${index}`} style={styles.subActivityCategoryContainer}>
+                        <View style={styles.subActivityCategoryHeader}>
+                          <Text style={[styles.subActivityCategoryName, { color: colors.text }]}>
+                            {categoryScore.category.name}
+                          </Text>
+                          <Text style={[styles.subActivityCategoryPercentage, { color: colors.text }]}>
+                            {categoryScore.category.percentage}%
+                          </Text>
+                        </View>
+                        {categoryScore.sub_activities.map((subActivity, subIndex) => (
+                          <View key={`sub-activity-${subIndex}`} style={styles.subActivityItemContainer}>
+                            <Text style={[styles.subActivityItemName, { color: colors.text }]}>
+                              {subActivity.name}
+                            </Text>
+                            {subActivity.scores.map((scores, scoreIndex) => (
+                              <View key={`score-${scoreIndex}`} style={styles.advisorCardContainer}>
+                                <View style={styles.advisorHeaderContainer}>
+                                  <Text style={[styles.advisorType, { color: colors.text }]}>
+                                    Advisor {scores.advisor.type}
+                                  </Text>
+                                  <Text style={[styles.advisorName, { color: colors.text }]}>
+                                    {scores.advisor.name}
+                                  </Text>
+                                </View>
+                                <View style={styles.advisorNotesContainer}>
+                                  <Text style={[styles.advisorNotesLabel, { color: colors.text }]}>Catatan:</Text>
+                                  <Text style={[styles.advisorNotesContent, { color: colors.text }]}>
+                                    {scores.notes ?? "Tidak Ada Catatan"}
+                                  </Text>
+                                </View>
                               </View>
                             ))}
                           </View>
                         ))}
-                        
-                        {/* Overall Sub-Activity Summary */}
-                      </>
-                    )}
-                  </Card>
+                      </View>
+                    ))}
+                  </>
                 )}
-              </ScrollView>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyText, { color: colors.text }]}>
-                  Data tidak tersedia
-                </Text>
-              </View>
+              </Card>
             )}
+          </>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { color: colors.text }]}>
+              Data tidak tersedia
+            </Text>
           </View>
-        </View>
-      </Modal>
+        )}
+      </AppModal>
     );
   };
 
@@ -885,6 +883,27 @@ const styles = StyleSheet.create({
   logbookList: {
     marginTop: 8,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  detailButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  detailText: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: "500",
+  },
   logbookItem: {
     backgroundColor: "#ffffff10",
     padding: 16,
@@ -892,6 +911,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 0.5,
     borderColor: "#00000020",
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  statusLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginRight: 4,
   },
   logbookHeader: {
     flexDirection: "row",

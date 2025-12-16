@@ -19,6 +19,7 @@ import { useUser } from "@/context/UserContext";
 import { api } from "@/services/api";
 import Card from "@/components/ui/Card";
 import { router } from "expo-router";
+import AssessmentList from "@/components/AssessmentList";
 
 // Interfaces for data types
 interface Assessment {
@@ -170,64 +171,19 @@ export default function PenilaianScreen() {
     });
   };
 
-  // Render assessment card
-  const renderAssessmentCard = (assessment: Assessment) => (
-    <TouchableOpacity
-       key={assessment.id}
-       style={styles.assessmentItem}
-       activeOpacity={0.7}
-       onPress={() => loadAssessmentDetails(assessment.id)}
-     >
-      <View style={styles.assessmentHeader}>
-        <Text style={[styles.assessmentTitle, { color: colors.text }]}>
-          {assessment.name}
-        </Text>
-        <View style={styles.assessmentActions}>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.tint }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              router.push({
-                pathname: '/penilaian-create',
-                params: { mode: 'edit', assessmentId: assessment.id.toString() }
-              });
-            }}
-          >
-            <Ionicons name="create" size={16} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: '#FF4D4D' }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              deleteAssessment(assessment.id);
-            }}
-          >
-            <Ionicons name="trash" size={16} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      <View style={styles.assessmentDetails}>
-        <View style={styles.detailRow}>
-          <Text style={[styles.detailLabel, { color: colors.text }]}>
-            Tanggal:
-          </Text>
-          <Text style={[styles.detailValue, { color: colors.text }]}>
-            {formatDate(assessment.date)}
-          </Text>
-        </View>
-        
-        <View style={styles.detailRow}>
-          <Text style={[styles.detailLabel, { color: colors.text }]}>
-            Jumlah Item:
-          </Text>
-          <Text style={[styles.detailValue, { color: colors.text }]}>
-            {assessment.items_count}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+  // Handlers for list component
+  const handleOpenDetail = (assessment: Assessment) => {
+    loadAssessmentDetails(assessment.id);
+  };
+  const handleEdit = (assessment: Assessment) => {
+    router.push({
+      pathname: '/penilaian-create',
+      params: { mode: 'edit', assessmentId: assessment.id.toString() }
+    });
+  };
+  const handleDelete = (assessment: Assessment) => {
+    deleteAssessment(assessment.id);
+  };
 
   // Format date and time for display
   const formatDateTime = (dateString: string) => {
@@ -360,7 +316,12 @@ export default function PenilaianScreen() {
     return (
       <View>
         {assessments.length > 0 ? (
-          assessments.map(renderAssessmentCard)
+          <AssessmentList
+            assessments={assessments}
+            onOpenDetail={handleOpenDetail}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         ) : (
           <View style={styles.emptyContainer}>
             <Ionicons name="clipboard-outline" size={48} color={colors.icon} />
@@ -431,29 +392,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 0.5,
     borderColor: "#00000020",
-  },
-  assessmentHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  assessmentTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    flex: 1,
-  },
-  assessmentActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  actionButton: {
-    padding: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  assessmentDetails: {
-    gap: 8,
   },
   detailRow: {
     flexDirection: "row",

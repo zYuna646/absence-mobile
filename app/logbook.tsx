@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Platform,
   Image,
@@ -21,6 +20,7 @@ import { useUser } from "@/context/UserContext";
 import { useLocalSearchParams, router } from "expo-router";
 import Card from "@/components/ui/Card";
 import PrimaryButton from "@/components/PrimaryButton";
+import AppModal from "@/components/ui/AppModal";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { API_URL } from "@/constants/Config";
@@ -54,10 +54,26 @@ export default function LogbookScreen() {
   // Additional activities state
   const [additionalCategories, setAdditionalCategories] = useState<any[]>([]);
   const [loadingAdditional, setLoadingAdditional] = useState(false);
-  const [selectedAdditionalActivities, setSelectedAdditionalActivities] = useState<{
-    categoryId: number;
-    subCategoryId: number;
-  }[]>([]);
+  const [selectedAdditionalActivities, setSelectedAdditionalActivities] = useState<
+    {
+      categoryId: number;
+      subCategoryId: number;
+      isDefault?: boolean;
+    }[]
+  >([]);
+
+  type ModalButton = { label: string; onPress?: () => void };
+  const [messageModalVisible, setMessageModalVisible] = useState(false);
+  const [messageModalTitle, setMessageModalTitle] = useState("");
+  const [messageModalText, setMessageModalText] = useState("");
+  const [messageModalButtons, setMessageModalButtons] = useState<ModalButton[]>([]);
+  const openMessageModal = (title: string, text: string, buttons?: ModalButton[]) => {
+    setMessageModalTitle(title);
+    setMessageModalText(text);
+    setMessageModalButtons(buttons && buttons.length > 0 ? buttons : [{ label: "OK" }]);
+    setMessageModalVisible(true);
+  };
+  const closeMessageModal = () => setMessageModalVisible(false);
 
   // Request permissions on mount
   useEffect(() => {
@@ -88,14 +104,15 @@ export default function LogbookScreen() {
           setAdditionalCategories(categories);
           
           // Auto-add default activities
-          const defaultActivities: { categoryId: number; subCategoryId: number }[] = [];
+          const defaultActivities: { categoryId: number; subCategoryId: number; isDefault: boolean }[] = [];
           categories.forEach(category => {
             if (category.sub_categories && Array.isArray(category.sub_categories)) {
               category.sub_categories.forEach((subCategory: any) => {
                 if (subCategory.is_default && subCategory.is_logbook_activity) {
                   defaultActivities.push({
                     categoryId: category.id,
-                    subCategoryId: subCategory.id
+                    subCategoryId: subCategory.id,
+                    isDefault: true
                   });
                 }
               });
@@ -156,7 +173,7 @@ export default function LogbookScreen() {
       }
     } catch (error) {
       console.error("Error getting location:", error);
-      Alert.alert("Error", "Gagal mendapatkan lokasi");
+      openMessageModal("Error", "Gagal mendapatkan lokasi");
     } finally {
       setLoadingLocation(false);
     }
@@ -165,12 +182,12 @@ export default function LogbookScreen() {
   // Take a photo using camera
   const takePhoto = async () => {
     if (hasCameraPermission !== true) {
-      Alert.alert(
+      openMessageModal(
         "Izin Kamera Diperlukan",
         "Aplikasi memerlukan akses ke kamera untuk mengambil foto",
         [
-          { text: "Batal", style: "cancel" },
-          { text: "Buka Pengaturan", onPress: () => Linking.openSettings() }
+          { label: "Batal" },
+          { label: "Buka Pengaturan", onPress: () => Linking.openSettings() }
         ]
       );
       return;
@@ -189,24 +206,24 @@ export default function LogbookScreen() {
       }
     } catch (error) {
       console.error("Error taking photo:", error);
-      Alert.alert("Error", "Gagal mengambil foto");
+      openMessageModal("Error", "Gagal mengambil foto");
     }
   };
 
   // Handle form submission for check-in
   const handleCheckIn = async () => {
     if (!token || !activityId) {
-      Alert.alert("Error", "Activity ID is missing");
+      openMessageModal("Error", "Activity ID is missing");
       return;
     }
 
     if (!photo) {
-      Alert.alert("Validation Error", "Foto harus diambil");
+      openMessageModal("Validasi", "Foto harus diambil");
       return;
     }
     
     if (!location) {
-      Alert.alert("Validation Error", "Lokasi tidak tersedia");
+      openMessageModal("Validasi", "Lokasi tidak tersedia");
       return;
     }
 
@@ -239,22 +256,15 @@ export default function LogbookScreen() {
       const response = await api.checkInLogbook(token, formData);
       
       if (response.success) {
-        Alert.alert(
-          "Berhasil",
-          "Check-in berhasil disimpan",
-          [
-            {
-              text: "OK",
-              onPress: () => router.back()
-            }
-          ]
-        );
+        openMessageModal("Berhasil", "Check-in berhasil disimpan", [
+          { label: "OK", onPress: () => router.back() }
+        ]);
       } else {
-        Alert.alert("Error", response.message || "Gagal menyimpan check-in");
+        openMessageModal("Error", response.message || "Gagal menyimpan check-in");
       }
     } catch (error) {
       console.error("Error submitting logbook:", error);
-      Alert.alert("Error", "Gagal menyimpan check-in");
+      openMessageModal("Error", "Gagal menyimpan check-in");
     } finally {
       setSubmitting(false);
     }
@@ -263,22 +273,22 @@ export default function LogbookScreen() {
   // Handle form submission for check-out
   const handleCheckOut = async () => {
     if (!token || !checkInId || !activityId) {
-      Alert.alert("Error", "Check-in ID or Activity ID is missing");
+      openMessageModal("Error", "Check-in ID or Activity ID is missing");
       return;
     }
 
     if (!photo) {
-      Alert.alert("Validation Error", "Foto harus diambil");
+      openMessageModal("Validasi", "Foto harus diambil");
       return;
     }
     
     if (!location) {
-      Alert.alert("Validation Error", "Lokasi tidak tersedia");
+      openMessageModal("Validasi", "Lokasi tidak tersedia");
       return;
     }
 
     if (!description) {
-      Alert.alert("Validation Error", "Deskripsi kegiatan harus diisi");
+      openMessageModal("Validasi", "Deskripsi kegiatan harus diisi");
       return;
     }
 
@@ -323,22 +333,15 @@ export default function LogbookScreen() {
       const response = await api.checkOutLogbook(token, checkInId, formData);
       
       if (response.success) {
-        Alert.alert(
-          "Berhasil",
-          "Check-out berhasil disimpan",
-          [
-            {
-              text: "OK",
-              onPress: () => router.back()
-            }
-          ]
-        );
+        openMessageModal("Berhasil", "Check-out berhasil disimpan", [
+          { label: "OK", onPress: () => router.back() }
+        ]);
       } else {
-        Alert.alert("Error", response.message || "Gagal menyimpan check-out");
+        openMessageModal("Error", response.message || "Gagal menyimpan check-out");
       }
     } catch (error) {
       console.error("Error submitting check-out:", error);
-      Alert.alert("Error", "Gagal menyimpan check-out");
+      openMessageModal("Error", "Gagal menyimpan check-out");
     } finally {
       setSubmitting(false);
     }
@@ -353,7 +356,7 @@ export default function LogbookScreen() {
       );
       
       if (hasInvalidSelection) {
-        Alert.alert(
+        openMessageModal(
           "Validasi Aktivitas Tambahan", 
           "Harap pilih sub kategori untuk setiap kategori yang dipilih"
         );
@@ -639,7 +642,9 @@ export default function LogbookScreen() {
                           <View style={[styles.pickerWrapper, { borderColor: colors.inputBorder }]}>
                             <Picker
                               selectedValue={selection.categoryId}
+                              enabled={!selection.isDefault}
                               onValueChange={(itemValue) => {
+                                if (selection.isDefault) return;
                                 const newSelections = [...selectedAdditionalActivities];
                                 newSelections[index] = { categoryId: itemValue, subCategoryId: 0 };
                                 setSelectedAdditionalActivities(newSelections);
@@ -665,18 +670,20 @@ export default function LogbookScreen() {
                               Aktivitas
                             </Text>
                             <View style={[styles.pickerWrapper, { borderColor: colors.inputBorder }]}>
-                              <Picker
-                                selectedValue={selection.subCategoryId}
-                                onValueChange={(itemValue) => {
-                                  const newSelections = [...selectedAdditionalActivities];
-                                  newSelections[index] = { ...newSelections[index], subCategoryId: itemValue };
-                                  setSelectedAdditionalActivities(newSelections);
-                                }}
-                                style={{ color: colors.text }}
-                              >
-                                <Picker.Item label="Pilih Aktivitas" value={0} />
-                                {selectedCategorySubCategories?.map((sub: any) => (
-                                  <Picker.Item 
+                            <Picker
+                              selectedValue={selection.subCategoryId}
+                              enabled={!selection.isDefault}
+                              onValueChange={(itemValue) => {
+                                if (selection.isDefault) return;
+                                const newSelections = [...selectedAdditionalActivities];
+                                newSelections[index] = { ...newSelections[index], subCategoryId: itemValue };
+                                setSelectedAdditionalActivities(newSelections);
+                              }}
+                              style={{ color: colors.text }}
+                            >
+                              <Picker.Item label="Pilih Aktivitas" value={0} />
+                              {selectedCategorySubCategories?.map((sub: any) => (
+                                <Picker.Item 
                                     key={`sub-${sub.id}`} 
                                     label={sub.name} 
                                     value={sub.id} 
@@ -688,34 +695,35 @@ export default function LogbookScreen() {
                         )}
 
                         {/* Delete Button - only show if not default */}
-                        {(() => {
-                          // Check if this activity is default
-                          const category = additionalCategories.find(cat => cat.id === selection.categoryId);
-                          const subCategory = category?.sub_categories?.find((sub: any) => sub.id === selection.subCategoryId);
-                          const isDefault = subCategory?.is_default;
-                          
-                          if (isDefault) {
-                            return (
-                              <View style={[styles.defaultActivityIndicator, { backgroundColor: colors.tint + '20', borderColor: colors.tint }]}>
-                                <Ionicons name="lock-closed" size={16} color={colors.tint} style={styles.defaultActivityIcon} />
-                                <Text style={[styles.defaultActivityText, { color: colors.tint }]}>Aktivitas Default</Text>
-                              </View>
-                            );
-                          }
-                          
-                          return (
-                            <TouchableOpacity
-                              style={[styles.deleteActivityButton, { backgroundColor: 'red' }]}
-                              onPress={() => {
-                                const newSelections = selectedAdditionalActivities.filter((_, i) => i !== index);
-                                setSelectedAdditionalActivities(newSelections);
-                              }}
-                            >
-                              <Ionicons name="trash" size={16} color="white" style={styles.deleteActivityButtonIcon} />
-                              <Text style={styles.deleteActivityButtonText}>Hapus</Text>
-                            </TouchableOpacity>
-                          );
-                        })()}
+                        {selection.isDefault ? (
+                          <View
+                            style={[
+                              styles.defaultActivityIndicator,
+                              { backgroundColor: colors.tint + "20", borderColor: colors.tint },
+                            ]}
+                          >
+                            <Ionicons
+                              name="lock-closed"
+                              size={16}
+                              color={colors.tint}
+                              style={styles.defaultActivityIcon}
+                            />
+                            <Text style={[styles.defaultActivityText, { color: colors.tint }]}>
+                              Aktivitas Default
+                            </Text>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            style={[styles.deleteActivityButton, { backgroundColor: "red" }]}
+                            onPress={() => {
+                              const newSelections = selectedAdditionalActivities.filter((_, i) => i !== index);
+                              setSelectedAdditionalActivities(newSelections);
+                            }}
+                          >
+                            <Ionicons name="trash" size={16} color="white" style={styles.deleteActivityButtonIcon} />
+                            <Text style={styles.deleteActivityButtonText}>Hapus</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     );
                   })}
@@ -747,6 +755,29 @@ export default function LogbookScreen() {
           style={styles.submitButton}
         />
       </ScrollView>
+
+      <AppModal
+        visible={messageModalVisible}
+        title={messageModalTitle}
+        onClose={closeMessageModal}
+      >
+        <Text style={{ color: colors.text, fontSize: 14, marginBottom: 16 }}>
+          {messageModalText}
+        </Text>
+        {messageModalButtons.map((btn, idx) => (
+          <View key={idx} style={{ marginTop: idx === 0 ? 0 : 8 }}>
+            <PrimaryButton
+              label={btn.label}
+              onPress={() => {
+                if (btn.onPress) {
+                  btn.onPress();
+                }
+                closeMessageModal();
+              }}
+            />
+          </View>
+        ))}
+      </AppModal>
     </View>
   );
 }

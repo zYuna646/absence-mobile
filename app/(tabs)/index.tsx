@@ -23,9 +23,7 @@ import StatisticRow from "@/components/ui/StatisticRow";
 import StatusBadge from "@/components/ui/StatusBadge";
 import ActivityItem from "@/components/ui/ActivityItem";
 import ProfileHeader from "@/components/ui/ProfileHeader";
-import NotificationPanel, {
-  Notification,
-} from "@/components/ui/NotificationPanel";
+import { Notification } from "@/components/ui/NotificationPanel";
 import ActivityCalendar, { Activity } from "@/components/ui/ActivityCalendar";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -157,7 +155,6 @@ export default function DashboardScreen() {
   const { role, userInfo, token, logout } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [statistics, setStatistics] = useState<StudentStatistics | null>(null);
@@ -468,7 +465,7 @@ export default function DashboardScreen() {
 
   // Handle notification icon press
   const handleNotificationIconPress = () => {
-    setShowNotifications(!showNotifications);
+    router.push("/notifikasi");
   };
 
   // Handle profile icon press
@@ -844,13 +841,7 @@ export default function DashboardScreen() {
         }
         nestedScrollEnabled={true}
       >
-        {showNotifications && (
-          <NotificationPanel
-            notifications={notifications}
-            onNotificationPress={handleNotificationPress}
-            onMarkAllAsRead={handleMarkAllAsRead}
-          />
-        )}
+        
 
         {/* Show group info for students before calendar */}
         {role === "student" && userInfo && (

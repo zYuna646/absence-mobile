@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import AppModal from "@/components/ui/AppModal";
 import { useThemeColor } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useUser } from "@/context/UserContext";
@@ -60,6 +61,24 @@ export default function AbsensiCreateScreen() {
 
   // Modal state
   const [showActivityModal, setShowActivityModal] = useState(false);
+  // Message modal state
+  type ModalButton = { label: string; onPress: () => void; type?: "default" | "primary" | "destructive" };
+  const [messageModalVisible, setMessageModalVisible] = useState(false);
+  const [messageModalTitle, setMessageModalTitle] = useState("");
+  const [messageModalText, setMessageModalText] = useState("");
+  const [messageModalButtons, setMessageModalButtons] = useState<ModalButton[]>([]);
+
+  const openMessageModal = (title: string, text: string, buttons?: ModalButton[]) => {
+    setMessageModalTitle(title);
+    setMessageModalText(text);
+    setMessageModalButtons(
+      buttons && buttons.length > 0
+        ? buttons
+        : [{ label: "OK", onPress: () => setMessageModalVisible(false), type: "primary" }]
+    );
+    setMessageModalVisible(true);
+  };
+  const closeMessageModal = () => setMessageModalVisible(false);
 
   // Load activities and request permissions on mount
   useEffect(() => {
@@ -228,16 +247,16 @@ export default function AbsensiCreateScreen() {
       console.log(response);
       
       if (response.success) {
-        Alert.alert(
-          "Berhasil",
-          "Check-in absensi berhasil disimpan",
-          [
-            {
-              text: "OK",
-              onPress: () => router.back()
-            }
-          ]
-        );
+        openMessageModal("Berhasil", "Check-in absensi berhasil disimpan", [
+          {
+            label: "OK",
+            type: "primary",
+            onPress: () => {
+              setMessageModalVisible(false);
+              router.back();
+            },
+          },
+        ]);
       } else {
         Alert.alert("Error", response.message || "Gagal menyimpan check-in absensi");
       }
@@ -302,16 +321,16 @@ export default function AbsensiCreateScreen() {
       const response = await api.checkOutAttendance(token, checkInId, formData);
       console.log(response);
       if (response.success) {
-        Alert.alert(
-          "Berhasil",
-          "Check-out absensi berhasil disimpan",
-          [
-            {
-              text: "OK",
-              onPress: () => router.back()
-            }
-          ]
-        );
+        openMessageModal("Berhasil", "Check-out absensi berhasil disimpan", [
+          {
+            label: "OK",
+            type: "primary",
+            onPress: () => {
+              setMessageModalVisible(false);
+              router.back();
+            },
+          },
+        ]);
       } else {
         Alert.alert("Error", response.message || "Gagal menyimpan check-out absensi");
       }
@@ -735,6 +754,34 @@ export default function AbsensiCreateScreen() {
           style={styles.submitButton}
         />
       </ScrollView>
+
+      {/* Message Modal for success confirmations */}
+      <AppModal
+        visible={messageModalVisible}
+        title={messageModalTitle}
+        onClose={closeMessageModal}
+      >
+        <Text style={{ color: colors.text, fontSize: 15 }}>{messageModalText}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+          {messageModalButtons.map((btn, idx) => {
+            const bg =
+              btn.type === "destructive"
+                ? (colors.error || "#dc3545")
+                : btn.type === "primary"
+                ? colors.tint
+                : "#6c757d";
+            return (
+              <TouchableOpacity
+                key={`${btn.label}-${idx}`}
+                style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: bg }}
+                onPress={btn.onPress}
+              >
+                <Text style={{ color: 'white', fontWeight: '600' }}>{btn.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </AppModal>
 
       {/* Activity Selector Modal */}
       <BottomSheetSelector

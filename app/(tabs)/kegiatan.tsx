@@ -20,6 +20,8 @@ import { api, ActivityData, ClinicAdvisorData } from "@/services/api";
 import { useUser } from "@/context/UserContext";
 import Card from "@/components/ui/Card";
 import PrimaryButton from "@/components/PrimaryButton";
+import KegiatanList from "@/components/KegiatanList";
+import AppModal from "@/components/ui/AppModal";
 import { router } from "expo-router";
 
 export default function KegiatanScreen() {
@@ -52,6 +54,25 @@ export default function KegiatanScreen() {
   });
   const [updating, setUpdating] = useState(false);
 
+  // Generic message/alert modal state
+  type ModalButton = { label: string; onPress: () => void; type?: "default" | "primary" | "destructive" };
+  const [messageModalVisible, setMessageModalVisible] = useState(false);
+  const [messageModalTitle, setMessageModalTitle] = useState("");
+  const [messageModalText, setMessageModalText] = useState("");
+  const [messageModalButtons, setMessageModalButtons] = useState<ModalButton[]>([]);
+
+  const openMessageModal = (title: string, text: string, buttons?: ModalButton[]) => {
+    setMessageModalTitle(title);
+    setMessageModalText(text);
+    setMessageModalButtons(
+      buttons && buttons.length > 0
+        ? buttons
+        : [{ label: "OK", onPress: () => setMessageModalVisible(false), type: "primary" }]
+    );
+    setMessageModalVisible(true);
+  };
+  const closeMessageModal = () => setMessageModalVisible(false);
+
   // Load activities
   const loadActivities = async () => {
     if (!token) return;
@@ -64,11 +85,11 @@ export default function KegiatanScreen() {
         setActivities(response.data);
         setFilteredActivities(response.data);
       } else {
-        Alert.alert("Error", response.message || "Gagal memuat ruangan");
+        openMessageModal("Error", response.message || "Gagal memuat ruangan");
       }
     } catch (error) {
       console.error("Error loading activities:", error);
-      Alert.alert("Error", "Gagal memuat ruangan");
+      openMessageModal("Error", "Gagal memuat ruangan");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -93,11 +114,11 @@ export default function KegiatanScreen() {
         }));
         setClinicAdvisors(formattedAdvisors);
       } else {
-        Alert.alert("Error", response.message || "Failed to load clinic advisors");
+        openMessageModal("Error", response.message || "Failed to load clinic advisors");
       }
     } catch (error) {
       console.error("Error loading clinic advisors:", error);
-      Alert.alert("Error", "Failed to load clinic advisors");
+      openMessageModal("Error", "Failed to load clinic advisors");
     } finally {
       setLoadingAdvisors(false);
     }
@@ -173,17 +194,17 @@ export default function KegiatanScreen() {
     
     // Validate inputs
     if (!formData.name.trim()) {
-      Alert.alert("Validation Error", "Name is required");
+      openMessageModal("Validation Error", "Name is required");
       return;
     }
     
     if (!formData.indicators.trim()) {
-      Alert.alert("Validation Error", "Indicators are required");
+      openMessageModal("Validation Error", "Indicators are required");
       return;
     }
     
     if (formData.clinic_advisor_id === 0) {
-      Alert.alert("Validation Error", "Please select a clinic advisor");
+      openMessageModal("Validation Error", "Please select a clinic advisor");
       return;
     }
     
@@ -192,7 +213,22 @@ export default function KegiatanScreen() {
       const response = await api.createActivity(token, formData);
       
       if (response.success) {
-        Alert.alert("Success", "Ruangan berhasil dibuat");
+        openMessageModal("Success", "Ruangan berhasil dibuat", [
+          {
+            label: "OK",
+            type: "primary",
+            onPress: () => {
+              setMessageModalVisible(false);
+              setFormData({
+                name: "",
+                indicators: "",
+                clinic_advisor_id: 0,
+              });
+              setShowForm(false);
+              loadActivities();
+            },
+          },
+        ]);
         setFormData({
           name: "",
           indicators: "",
@@ -201,11 +237,11 @@ export default function KegiatanScreen() {
         setShowForm(false);
         loadActivities();
       } else {
-        Alert.alert("Error", response.message || "Gagal membuat ruangan");
+        openMessageModal("Error", response.message || "Gagal membuat ruangan");
       }
     } catch (error) {
       console.error("Error creating activity:", error);
-      Alert.alert("Error", "Gagal membuat ruangan");
+      openMessageModal("Error", "Gagal membuat ruangan");
     } finally {
       setSubmitting(false);
     }
@@ -237,14 +273,24 @@ export default function KegiatanScreen() {
       // TODO: Implement the actual API call when available
       setTimeout(() => {
         // Simulate successful update
-        Alert.alert("Success", "Ruangan berhasil diperbarui");
+        openMessageModal("Success", "Ruangan berhasil diperbarui", [
+          {
+            label: "OK",
+            type: "primary",
+            onPress: () => {
+              setMessageModalVisible(false);
+              setShowEditModal(false);
+              loadActivities(); // Reload activities to get the updated data
+            },
+          },
+        ]);
         setShowEditModal(false);
         loadActivities(); // Reload activities to get the updated data
         setUpdating(false);
       }, 1000);
     } catch (error) {
       console.error("Error updating activity:", error);
-      Alert.alert("Error", "Gagal memperbarui ruangan");
+      openMessageModal("Error", "Gagal memperbarui ruangan");
       setUpdating(false);
     }
   };
@@ -301,39 +347,41 @@ export default function KegiatanScreen() {
       ? 'Membuka ruangan akan memungkinkan mahasiswa untuk membuat logbook baru.'
       : 'Menutup ruangan akan mencegah mahasiswa membuat logbook baru.';
     
-    Alert.alert(
-      `${actionText} Ruangan`,
-      message + ' Lanjutkan?',
-      [
-        { text: "Batal", style: "cancel" },
-        { 
-          text: actionText, 
-          style: action === 'lock' ? "destructive" : "default",
-          onPress: async () => {
-            try {
-              setLoading(true);
-              
-              const response = action === 'unlock' 
-                ? await api.unlockActivity(token, activity.id)
-                : await api.lockActivity(token, activity.id);
-              
-              if (response.success) {
-                Alert.alert("Success", `Ruangan berhasil di${action === 'unlock' ? 'buka' : 'tutup'}`);
-                // Reload activities to get updated status
-                loadActivities();
-              } else {
-                Alert.alert("Error", response.message || `Gagal ${actionText.toLowerCase()} kegiatan`);
-              }
-            } catch (error) {
-              console.error(`Error ${action} activity:`, error);
-              Alert.alert("Error", `Gagal ${actionText.toLowerCase()} kegiatan`);
-            } finally {
-              setLoading(false);
+    openMessageModal(`${actionText} Ruangan`, `${message} Lanjutkan?`, [
+      { label: "Batal", type: "default", onPress: () => setMessageModalVisible(false) },
+      { 
+        label: actionText, 
+        type: action === 'lock' ? "destructive" : "primary",
+        onPress: async () => {
+          setMessageModalVisible(false);
+          try {
+            setLoading(true);
+            const response = action === 'unlock' 
+              ? await api.unlockActivity(token, activity.id)
+              : await api.lockActivity(token, activity.id);
+            if (response.success) {
+              openMessageModal("Success", `Ruangan berhasil di${action === 'unlock' ? 'buka' : 'tutup'}`, [
+                {
+                  label: "OK",
+                  type: "primary",
+                  onPress: () => {
+                    setMessageModalVisible(false);
+                    loadActivities();
+                  }
+                }
+              ]);
+            } else {
+              openMessageModal("Error", response.message || `Gagal ${actionText.toLowerCase()} kegiatan`);
             }
-          },
+          } catch (error) {
+            console.error(`Error ${action} activity:`, error);
+            openMessageModal("Error", `Gagal ${actionText.toLowerCase()} kegiatan`);
+          } finally {
+            setLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Check if activity can be unlocked (is_lock = 1 and lock_date = null)
@@ -364,78 +412,7 @@ export default function KegiatanScreen() {
     }
   };
 
-  // Render each activity card
-  const renderActivity = (activity: ActivityData) => {
-    const status = getActivityStatus(activity);
-    
-    return (
-      <TouchableOpacity key={activity.id} onPress={() => handleActivityClick(activity)}>
-        <Card title={activity.name}>
-          <Text style={[styles.advisorInfo, { color: colors.tint }]}>
-            <Ionicons name="person" size={14} color={colors.tint} style={{ marginRight: 4 }} />
-            Pembimbing: {activity.advisor_clinic_name || "Unknown Advisor"}
-          </Text>
-          
-          {activity.location && (
-            <Text style={[{ fontSize: 14, marginBottom: 8, color: colors.icon }]}>
-              <Ionicons name="location" size={14} color={colors.icon} style={{ marginRight: 4 }} />
-              {activity.location}{activity.room ? `, Ruang ${activity.room}` : ''}
-            </Text>
-          )}
-          
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <Text style={[{ fontSize: 14, fontWeight: '500', color: colors.text }]}>Status: </Text>
-            <View style={[{ paddingVertical: 2, paddingHorizontal: 8, borderRadius: 4, marginLeft: 4, backgroundColor: status.color }]}>
-              <Text style={{ fontSize: 12, fontWeight: '500', color: 'white' }}>{status.text}</Text>
-            </View>
-          </View>
-          
-          {activity.created_at && (
-            <Text style={styles.date}>
-              Created: {new Date(activity.created_at).toLocaleDateString()}
-            </Text>
-          )}
-          
-          <View style={styles.activityButtonsContainer}>
-            {role === "student" && (
-              <TouchableOpacity 
-                style={[styles.reportButton, { backgroundColor: colors.tint }]}
-                onPress={() => handleReportPress(activity)}
-              >
-                <Ionicons name="document-text-outline" size={16} color="white" style={styles.reportIcon} />
-                <Text style={styles.reportText}>Laporan</Text>
-              </TouchableOpacity>
-            )}
-            
-            {role === "advisor" && (
-              <View style={styles.advisorButtonsContainer}>
-                {(canUnlock(activity) || isLocked(activity)) && (
-                  <TouchableOpacity 
-                    style={[styles.activityActionButton, { backgroundColor: colors.success || "#28a745" }]}
-                    onPress={() => handleToggleActivity(activity, 'unlock')}
-                    disabled={isLocked(activity)}
-                  >
-                    <Ionicons name="lock-open-outline" size={16} color="white" style={styles.buttonIcon} />
-                    <Text style={styles.activityActionText}>Buka</Text>
-                  </TouchableOpacity>
-                )}
-                
-                {isUnlocked(activity) && (
-                  <TouchableOpacity 
-                    style={[styles.activityActionButton, { backgroundColor: colors.warning || "#ffc107" }]}
-                    onPress={() => handleToggleActivity(activity, 'lock')}
-                  >
-                    <Ionicons name="lock-closed-outline" size={16} color="white" style={styles.buttonIcon} />
-                    <Text style={styles.activityActionText}>Tutup</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        </Card>
-      </TouchableOpacity>
-    );
-  };
+  // Render activities with component-based list
 
   // Handle report button press
   const handleReportPress = (activity: ActivityData) => {
@@ -617,7 +594,13 @@ export default function KegiatanScreen() {
           }
         >
           {filteredActivities.length > 0 ? (
-            filteredActivities.map(renderActivity)
+            <KegiatanList
+              activities={filteredActivities}
+              role={role as any}
+              onToggleActivity={handleToggleActivity}
+              onOpenDetail={handleActivityClick}
+              onReportPress={handleReportPress}
+            />
           ) : (
             <View style={styles.emptyContainer}>
               <Ionicons
@@ -659,176 +642,175 @@ export default function KegiatanScreen() {
       )}
 
       {/* Advisor selector modal */}
-      <Modal
+      <AppModal
         visible={showAdvisorSelector}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={toggleAdvisorSelector}
+        title="Pilih Pembimbing Klinik"
+        onClose={toggleAdvisorSelector}
       >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                Pilih Pembimbing Klinik
-              </Text>
-              <TouchableOpacity onPress={toggleAdvisorSelector}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            {loadingAdvisors ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.tint} />
-                <Text style={[styles.loadingText, { color: colors.text }]}>
-                  Memuat pembimbing klinik...
-                </Text>
-              </View>
-            ) : clinicAdvisors.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                  <Text style={[styles.emptyText, { color: colors.text }]}>
-                    Tidak ada pembimbing klinik ditemukan
-                  </Text>
-                </View>
-            ) : showEditModal ? (
-              <FlatList
-                data={clinicAdvisors}
-                renderItem={renderEditAdvisorItem}
-                keyExtractor={(item) => item.id.toString()}
-                style={styles.advisorList}
-              />
-            ) : (
-              <FlatList
-                data={clinicAdvisors}
-                renderItem={renderAdvisorItem}
-                keyExtractor={(item) => item.id.toString()}
-                style={styles.advisorList}
-              />
-            )}
+        {loadingAdvisors ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.tint} />
+            <Text style={[styles.loadingText, { color: colors.text }]}>
+              Memuat pembimbing klinik...
+            </Text>
           </View>
+        ) : clinicAdvisors.length === 0 ? (
+          <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: colors.text }]}>
+                Tidak ada pembimbing klinik ditemukan
+              </Text>
+            </View>
+        ) : showEditModal ? (
+          <FlatList
+            data={clinicAdvisors}
+            renderItem={renderEditAdvisorItem}
+            keyExtractor={(item) => item.id.toString()}
+            style={styles.advisorList}
+          />
+        ) : (
+          <FlatList
+            data={clinicAdvisors}
+            renderItem={renderAdvisorItem}
+            keyExtractor={(item) => item.id.toString()}
+            style={styles.advisorList}
+          />
+        )}
+      </AppModal>
+
+      {/* Generic message modal for alerts and confirmations */}
+      <AppModal
+        visible={messageModalVisible}
+        title={messageModalTitle}
+        onClose={closeMessageModal}
+      >
+        <Text style={{ color: colors.text, fontSize: 15 }}>{messageModalText}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+          {messageModalButtons.map((btn, idx) => {
+            const bg =
+              btn.type === "destructive"
+                ? (colors.error || "#dc3545")
+                : btn.type === "primary"
+                ? colors.tint
+                : "#6c757d";
+            return (
+              <TouchableOpacity
+                key={`${btn.label}-${idx}`}
+                style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: bg }}
+                onPress={btn.onPress}
+              >
+                <Text style={{ color: 'white', fontWeight: '600' }}>{btn.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </Modal>
-      
+      </AppModal>
+
       {/* Activity Detail/Edit Modal */}
-      <Modal
+      <AppModal
         visible={showEditModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowEditModal(false)}
+        title={role === "advisor" ? "Edit Ruangan" : "Detail Ruangan"}
+        onClose={() => setShowEditModal(false)}
+        scroll
       >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {role === "advisor" ? "Edit Ruangan" : "Detail Ruangan"}
-              </Text>
-              <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
+        <View style={styles.form}>
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: colors.text }]}>Nama Ruangan</Text>
+            <TextInput
+              style={[
+                styles.input,
+                { 
+                  backgroundColor: colors.inputBackground,
+                  color: colors.text,
+                  borderColor: colors.inputBorder
+                }
+              ]}
+              placeholder="Nama ruangan"
+              placeholderTextColor={colors.icon}
+              value={editFormData.name}
+              onChangeText={(text) => handleEditInputChange("name", text)}
+              editable={role === "advisor"}
+            />
+          </View>
+          
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: colors.text }]}>Indikator</Text>
+            <TextInput
+              style={[
+                styles.input,
+                styles.textArea,
+                { 
+                  backgroundColor: colors.inputBackground,
+                  color: colors.text,
+                  borderColor: colors.inputBorder
+                }
+              ]}
+              placeholder="Indikator kegiatan"
+              placeholderTextColor={colors.icon}
+              value={editFormData.indicators}
+              onChangeText={(text) => handleEditInputChange("indicators", text)}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              editable={role === "advisor"}
+            />
+          </View>
+          
+          {role === "advisor" && (
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Pembimbing Klinik</Text>
+              <TouchableOpacity
+                style={[
+                  styles.input,
+                  styles.selector,
+                  { 
+                    backgroundColor: colors.inputBackground,
+                    borderColor: colors.inputBorder
+                  }
+                ]}
+                onPress={toggleAdvisorSelector}
+              >
+                <Text style={{ 
+                  color: editFormData.clinic_advisor_id === 0 ? colors.icon : colors.text 
+                }}>
+                  {editFormData.clinic_advisor_id === 0 
+                    ? "Pilih pembimbing klinik" 
+                    : getSelectedEditAdvisorName()
+                  }
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={colors.icon} />
               </TouchableOpacity>
             </View>
-
-            <ScrollView style={styles.editModalScroll}>
-              <View style={styles.form}>
-                <View style={styles.formGroup}>
-                  <Text style={[styles.label, { color: colors.text }]}>Nama Ruangan</Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { 
-                        backgroundColor: colors.inputBackground,
-                        color: colors.text,
-                        borderColor: colors.inputBorder
-                      }
-                    ]}
-                    placeholder="Nama ruangan"
-                    placeholderTextColor={colors.icon}
-                    value={editFormData.name}
-                    onChangeText={(text) => handleEditInputChange("name", text)}
-                    editable={role === "advisor"}
-                  />
-                </View>
-                
-                <View style={styles.formGroup}>
-                  <Text style={[styles.label, { color: colors.text }]}>Indikator</Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      styles.textArea,
-                      { 
-                        backgroundColor: colors.inputBackground,
-                        color: colors.text,
-                        borderColor: colors.inputBorder
-                      }
-                    ]}
-                    placeholder="Indikator kegiatan"
-                    placeholderTextColor={colors.icon}
-                    value={editFormData.indicators}
-                    onChangeText={(text) => handleEditInputChange("indicators", text)}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                    editable={role === "advisor"}
-                  />
-                </View>
-                
-                {role === "advisor" && (
-                  <View style={styles.formGroup}>
-                    <Text style={[styles.label, { color: colors.text }]}>Pembimbing Klinik</Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.input,
-                        styles.selector,
-                        { 
-                          backgroundColor: colors.inputBackground,
-                          borderColor: colors.inputBorder
-                        }
-                      ]}
-                      onPress={toggleAdvisorSelector}
-                    >
-                      <Text style={{ 
-                        color: editFormData.clinic_advisor_id === 0 ? colors.icon : colors.text 
-                      }}>
-                        {editFormData.clinic_advisor_id === 0 
-                          ? "Pilih pembimbing klinik" 
-                          : getSelectedEditAdvisorName()
-                        }
-                      </Text>
-                      <Ionicons name="chevron-down" size={20} color={colors.icon} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-                
-                {role !== "advisor" && (
-                  <View style={styles.formGroup}>
-                    <Text style={[styles.label, { color: colors.text }]}>Pembimbing Klinik</Text>
-                    <Text style={[styles.readOnlyField, { color: colors.text }]}>
-                      {selectedActivity?.advisor_clinic_name || "Unknown Advisor"}
-                    </Text>
-                  </View>
-                )}
-                
-                {selectedActivity?.created_at && (
-                  <View style={styles.formGroup}>
-                    <Text style={[styles.label, { color: colors.text }]}>Tanggal Dibuat</Text>
-                    <Text style={[styles.readOnlyField, { color: colors.text }]}>
-                      {new Date(selectedActivity.created_at).toLocaleDateString()}
-                    </Text>
-                  </View>
-                )}
-                
-                {role === "advisor" && (
-                  <PrimaryButton
-                    label="Update Ruangan"
-                    onPress={handleUpdate}
-                    loading={updating}
-                    disabled={updating}
-                    style={styles.saveButton}
-                  />
-                )}
-              </View>
-            </ScrollView>
-          </View>
+          )}
+          
+          {role !== "advisor" && (
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Pembimbing Klinik</Text>
+              <Text style={[styles.readOnlyField, { color: colors.text }]}>
+                {selectedActivity?.advisor_clinic_name || "Unknown Advisor"}
+              </Text>
+            </View>
+          )}
+          
+          {selectedActivity?.created_at && (
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Tanggal Dibuat</Text>
+              <Text style={[styles.readOnlyField, { color: colors.text }]}>
+                {new Date(selectedActivity.created_at).toLocaleDateString()}
+              </Text>
+            </View>
+          )}
+          
+          {role === "advisor" && (
+            <PrimaryButton
+              label="Update Ruangan"
+              onPress={handleUpdate}
+              loading={updating}
+              disabled={updating}
+              style={styles.saveButton}
+            />
+          )}
         </View>
-      </Modal>
+      </AppModal>
     </View>
   );
 }

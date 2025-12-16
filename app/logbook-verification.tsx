@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   Modal,
   Image,
@@ -21,6 +20,8 @@ import { useUser } from "@/context/UserContext";
 import { api } from "@/services/api";
 import { useLocalSearchParams, router } from "expo-router";
 import Card from "@/components/ui/Card";
+import PrimaryButton from "@/components/PrimaryButton";
+import AppModal from "@/components/ui/AppModal";
 
 interface Student {
   id: number;
@@ -127,6 +128,19 @@ export default function LogbookVerificationScreen() {
   }>({});
   const [submitting, setSubmitting] = useState(false);
 
+  type ModalButton = { label: string; onPress?: () => void };
+  const [messageModalVisible, setMessageModalVisible] = useState(false);
+  const [messageModalTitle, setMessageModalTitle] = useState("");
+  const [messageModalText, setMessageModalText] = useState("");
+  const [messageModalButtons, setMessageModalButtons] = useState<ModalButton[]>([]);
+  const openMessageModal = (title: string, text: string, buttons?: ModalButton[]) => {
+    setMessageModalTitle(title);
+    setMessageModalText(text);
+    setMessageModalButtons(buttons && buttons.length > 0 ? buttons : [{ label: "OK" }]);
+    setMessageModalVisible(true);
+  };
+  const closeMessageModal = () => setMessageModalVisible(false);
+
   // Load logbook details on mount
   useEffect(() => {
     loadLogbookDetails();
@@ -155,11 +169,11 @@ export default function LogbookVerificationScreen() {
       if (response.success && response.data) {
         setLogbook(response.data);
       } else {
-        Alert.alert("Error", "Failed to load logbook details");
+        openMessageModal("Error", "Failed to load logbook details");
       }
     } catch (error) {
       console.error("Error loading logbook details:", error);
-      Alert.alert("Error", "Failed to load logbook details");
+      openMessageModal("Error", "Failed to load logbook details");
     } finally {
       setLoading(false);
     }
@@ -168,7 +182,7 @@ export default function LogbookVerificationScreen() {
   // Function to handle verification
   const handleVerify = async () => {
     if (!token || !logbook?.check_out?.id) {
-      Alert.alert("Error", "Data tidak lengkap");
+      openMessageModal("Error", "Data tidak lengkap");
       return;
     }
 
@@ -199,23 +213,22 @@ export default function LogbookVerificationScreen() {
       });
 
       if (response.success) {
-        Alert.alert("Berhasil", "Logbook berhasil diverifikasi", [
+        openMessageModal("Berhasil", "Logbook berhasil diverifikasi", [
           {
-            text: "OK",
+            label: "OK",
             onPress: () => {
               setShowVerifyModal(false);
-              setSubActivityScores({}); // Reset scores
-              // Reload details to get updated verification data
+              setSubActivityScores({});
               loadLogbookDetails();
             },
           },
         ]);
       } else {
-        Alert.alert("Error", response.message || "Gagal memverifikasi logbook");
+        openMessageModal("Error", response.message || "Gagal memverifikasi logbook");
       }
     } catch (error) {
       console.error("Error verifying logbook:", error);
-      Alert.alert(
+      openMessageModal(
         "Error",
         error instanceof Error ? error.message : "Gagal memverifikasi logbook"
       );
@@ -1068,6 +1081,29 @@ export default function LogbookVerificationScreen() {
 
       {/* Verification Modal */}
       {renderVerificationModal()}
+      
+      <AppModal
+        visible={messageModalVisible}
+        title={messageModalTitle}
+        onClose={closeMessageModal}
+      >
+        <Text style={{ color: colors.text, fontSize: 14, marginBottom: 16 }}>
+          {messageModalText}
+        </Text>
+        {messageModalButtons.map((btn, idx) => (
+          <View key={idx} style={{ marginTop: idx === 0 ? 0 : 8 }}>
+            <PrimaryButton
+              label={btn.label}
+              onPress={() => {
+                if (btn.onPress) {
+                  btn.onPress();
+                }
+                closeMessageModal();
+              }}
+            />
+          </View>
+        ))}
+      </AppModal>
     </View>
   );
 }

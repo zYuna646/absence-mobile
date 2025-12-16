@@ -22,6 +22,7 @@ import { api } from "@/services/api";
 import Card from "@/components/ui/Card";
 import PrimaryButton from "@/components/PrimaryButton";
 import BottomSheetSelector from "@/components/ui/BottomSheetSelector";
+import AppModal from "@/components/ui/AppModal";
 
 export default function PenilaianCreateScreen() {
   const colors = useThemeColor();
@@ -60,6 +61,23 @@ export default function PenilaianCreateScreen() {
 
   // Modal state
   const [showStudentModal, setShowStudentModal] = useState(false);
+  type ModalButton = { label: string; onPress: () => void; type?: "default" | "primary" | "destructive" };
+  const [messageModalVisible, setMessageModalVisible] = useState(false);
+  const [messageModalTitle, setMessageModalTitle] = useState("");
+  const [messageModalText, setMessageModalText] = useState("");
+  const [messageModalButtons, setMessageModalButtons] = useState<ModalButton[]>([]);
+
+  const openMessageModal = (title: string, text: string, buttons?: ModalButton[]) => {
+    setMessageModalTitle(title);
+    setMessageModalText(text);
+    setMessageModalButtons(
+      buttons && buttons.length > 0
+        ? buttons
+        : [{ label: "OK", onPress: () => setMessageModalVisible(false), type: "primary" }]
+    );
+    setMessageModalVisible(true);
+  };
+  const closeMessageModal = () => setMessageModalVisible(false);
 
   // Load data on mount
   useEffect(() => {
@@ -137,12 +155,12 @@ export default function PenilaianCreateScreen() {
             }
           } catch (error) {
             console.error("Error fetching assessment details:", error);
-            Alert.alert("Error", "Gagal memuat detail penilaian");
+            openMessageModal("Error", "Gagal memuat detail penilaian");
           }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        Alert.alert("Error", "Gagal memuat data");
+        openMessageModal("Error", "Gagal memuat data");
       } finally {
         setLoadingStudents(false);
         setLoadingAdditional(false);
@@ -189,19 +207,19 @@ export default function PenilaianCreateScreen() {
   const handleSubmit = async () => {
     // Validate assessment name
     if (!assessmentName.trim()) {
-      Alert.alert("Validasi", "Nama penilaian harus diisi");
+      openMessageModal("Validasi", "Nama penilaian harus diisi");
       return;
     }
 
     // Validate additional activities
     if (selectedAdditionalActivities.length === 0) {
-      Alert.alert("Validasi", "Pilih minimal satu aktivitas tambahan");
+      openMessageModal("Validasi", "Pilih minimal satu aktivitas tambahan");
       return;
     }
 
     // Validate student selection
     if (selectedStudents.length === 0) {
-      Alert.alert("Validasi", "Pilih minimal satu mahasiswa");
+      openMessageModal("Validasi", "Pilih minimal satu mahasiswa");
       return;
     }
 
@@ -214,7 +232,7 @@ export default function PenilaianCreateScreen() {
     );
 
     if (hasInvalidScore) {
-      Alert.alert("Validasi", "Pastikan semua nilai adalah angka antara 0-100");
+      openMessageModal("Validasi", "Pastikan semua nilai adalah angka antara 0-100");
       return;
     }
 
@@ -242,14 +260,23 @@ export default function PenilaianCreateScreen() {
         throw new Error(response.message || "Gagal menyimpan penilaian");
       }
 
-      Alert.alert(
-        "Berhasil", 
+      openMessageModal(
+        "Berhasil",
         mode === "edit" ? "Penilaian berhasil diperbarui" : "Penilaian berhasil disimpan",
-        [{ text: "OK", onPress: () => router.back() }]
+        [
+          {
+            label: "OK",
+            type: "primary",
+            onPress: () => {
+              setMessageModalVisible(false);
+              router.back();
+            }
+          }
+        ]
       );
     } catch (error) {
       console.error("Error submitting assessment:", error);
-      Alert.alert("Error", "Gagal menyimpan penilaian");
+      openMessageModal("Error", "Gagal menyimpan penilaian");
     } finally {
       setSubmitting(false);
     }
@@ -636,6 +663,33 @@ export default function PenilaianCreateScreen() {
           style={styles.submitButton}
         />
       </ScrollView>
+      
+      <AppModal
+        visible={messageModalVisible}
+        title={messageModalTitle}
+        onClose={closeMessageModal}
+      >
+        <Text style={{ color: colors.text, fontSize: 15 }}>{messageModalText}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+          {messageModalButtons.map((btn, idx) => {
+            const bg =
+              btn.type === "destructive"
+                ? (colors.error || "#dc3545")
+                : btn.type === "primary"
+                ? colors.tint
+                : "#6c757d";
+            return (
+              <TouchableOpacity
+                key={`${btn.label}-${idx}`}
+                style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: bg }}
+                onPress={btn.onPress}
+              >
+                <Text style={{ color: 'white', fontWeight: '600' }}>{btn.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </AppModal>
     </View>
   );
 }

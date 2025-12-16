@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
   TextStyle,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -18,6 +17,7 @@ import { useUser } from "@/context/UserContext";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import AppLogo from "@/components/AppLogo";
 import PrimaryButton from "@/components/PrimaryButton";
+import AppModal from "@/components/ui/AppModal";
 
 export default function LoginScreen() {
   const [username, setUsername] = useState("");
@@ -27,6 +27,11 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const colors = useThemeColor();
   const { login, isLoading, isLoggedIn, error } = useUser();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState<string>("");
+  const [modalMessage, setModalMessage] = useState<string>("");
+  const [modalConfirmLabel, setModalConfirmLabel] = useState<string>("OK");
+  const [modalConfirmAction, setModalConfirmAction] = useState<(() => void) | null>(null);
 
   // If already logged in, redirect to main app
   useEffect(() => {
@@ -48,12 +53,20 @@ export default function LoginScreen() {
 
     // Validate form
     if (!username || !username.trim()) {
-      setLoginError("Username wajib diisi");
+      setModalTitle("Error");
+      setModalMessage("Username wajib diisi");
+      setModalConfirmLabel("OK");
+      setModalConfirmAction(null);
+      setModalVisible(true);
       return;
     }
 
     if (!password || !password.trim()) {
-      setLoginError("Password wajib diisi");
+      setModalTitle("Error");
+      setModalMessage("Password wajib diisi");
+      setModalConfirmLabel("OK");
+      setModalConfirmAction(null);
+      setModalVisible(true);
       return;
     }
 
@@ -68,22 +81,20 @@ export default function LoginScreen() {
         // API login failed with error, already handled by the context
       }
     } catch (err) {
-      setLoginError("Terjadi kesalahan. Silakan coba lagi.");
+      setModalTitle("Error");
+      setModalMessage("Terjadi kesalahan. Silakan coba lagi.");
+      setModalConfirmLabel("OK");
+      setModalConfirmAction(null);
+      setModalVisible(true);
     }
   };
 
   const handleForgotPassword = () => {
-    // Show alert with reset password instructions
-    Alert.alert(
-      "Reset Password",
-      "Silahkan hubungi administrator untuk reset password Anda.",
-      [
-        {
-          text: "OK",
-          onPress: () => console.log("OK Pressed"),
-        },
-      ]
-    );
+    setModalTitle("Reset Password");
+    setModalMessage("Silahkan hubungi administrator untuk reset password Anda.");
+    setModalConfirmLabel("OK");
+    setModalConfirmAction(null);
+    setModalVisible(true);
   };
   
   const handleRegister = () => {
@@ -155,11 +166,7 @@ export default function LoginScreen() {
           </Text>
         </TouchableOpacity>
 
-        {loginError && (
-          <Text style={[styles.errorText, { color: colors.error }]}>
-            {loginError}
-          </Text>
-        )}
+        
 
         <PrimaryButton
           label="Masuk"
@@ -180,6 +187,25 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      
+      <AppModal
+        visible={modalVisible}
+        title={modalTitle}
+        onClose={() => setModalVisible(false)}
+      >
+        <Text style={{ color: colors.text, fontSize: 14, marginBottom: 16 }}>
+          {modalMessage}
+        </Text>
+        <PrimaryButton
+          label={modalConfirmLabel}
+          onPress={() => {
+            if (modalConfirmAction) {
+              modalConfirmAction();
+            }
+            setModalVisible(false);
+          }}
+        />
+      </AppModal>
     </ScrollView>
   );
 }
