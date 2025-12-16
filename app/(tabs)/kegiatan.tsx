@@ -12,6 +12,9 @@ import {
   Modal,
   FlatList,
   GestureResponderEvent,
+  Keyboard,
+  Platform,
+  InputAccessoryView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/constants/Colors";
@@ -28,6 +31,7 @@ export default function KegiatanScreen() {
   const colors = useThemeColor();
   const colorScheme = useColorScheme();
   const { token, role } = useUser();
+  const INDICATOR_INPUT_ID = "indicator-input-accessory";
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const [filteredActivities, setFilteredActivities] = useState<ActivityData[]>([]);
   const [clinicAdvisors, setClinicAdvisors] = useState<ClinicAdvisorData[]>([]);
@@ -534,6 +538,10 @@ export default function KegiatanScreen() {
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
+                blurOnSubmit={Platform.OS === "ios"}
+                returnKeyType={Platform.OS === "ios" ? "done" : "default"}
+                onSubmitEditing={() => Keyboard.dismiss()}
+                inputAccessoryViewID={Platform.OS === "ios" ? INDICATOR_INPUT_ID : undefined}
               />
             </View>
             
@@ -752,6 +760,10 @@ export default function KegiatanScreen() {
               numberOfLines={4}
               textAlignVertical="top"
               editable={role === "advisor"}
+              blurOnSubmit={Platform.OS === "ios"}
+              returnKeyType={Platform.OS === "ios" ? "done" : "default"}
+              onSubmitEditing={() => Keyboard.dismiss()}
+              inputAccessoryViewID={Platform.OS === "ios" ? INDICATOR_INPUT_ID : undefined}
             />
           </View>
           
@@ -811,6 +823,30 @@ export default function KegiatanScreen() {
           )}
         </View>
       </AppModal>
+      
+      {Platform.OS === "ios" && (
+        <InputAccessoryView nativeID={INDICATOR_INPUT_ID}>
+          <View style={{ 
+            backgroundColor: colors.background, 
+            borderTopWidth: 1, 
+            borderColor: colors.inputBorder,
+            padding: 8,
+            alignItems: "flex-end"
+          }}>
+            <TouchableOpacity
+              onPress={() => Keyboard.dismiss()}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                backgroundColor: colors.tint
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "600" }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </View>
   );
 }
