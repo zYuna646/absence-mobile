@@ -26,6 +26,7 @@ import {
 } from "@/services/api";
 import PrimaryButton from "@/components/PrimaryButton";
 import Card from "@/components/ui/Card";
+import BottomSheetSelector from "@/components/ui/BottomSheetSelector";
 
 // Define local interface for student form
 interface StudentForm {
@@ -104,6 +105,9 @@ export default function ProfileScreen() {
   // Add animation values
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
+  const [showStaseSelector, setShowStaseSelector] = useState(false);
+  const [showGroupSelector, setShowGroupSelector] = useState(false);
+  const [showAdvisorStaseSelector, setShowAdvisorStaseSelector] = useState(false);
 
   // Add animation on component mount
   useEffect(() => {
@@ -550,24 +554,6 @@ console.log(userInfo);
 
 
 
-            <PrimaryButton
-              label="Simpan Profil"
-              onPress={saveStudentProfile}
-              loading={saving}
-              disabled={saving}
-              style={styles.saveButton}
-            />
-            
-            <TouchableOpacity
-              style={[styles.deleteButton, { borderColor: colors.error }]}
-              onPress={handleDeleteAccount}
-              disabled={deletingAccount}
-            >
-              <Text style={[styles.deleteButtonText, { color: colors.error }]}>
-                {deletingAccount ? "Menghapus..." : "Hapus Akun"}
-              </Text>
-              {deletingAccount && <ActivityIndicator size="small" color={colors.error} style={{ marginLeft: 8 }} />}
-            </TouchableOpacity>
           </View>
         </Card>
 
@@ -649,101 +635,126 @@ console.log(userInfo);
           <View style={styles.formContainer}>
             <View style={styles.formGroup}>
               <Text style={[styles.label, { color: colors.text }]}>Stase</Text>
-              <View style={[styles.dropdownContainer, { backgroundColor: colors.background }]}>
-                {loadingStases ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color={colors.tint} />
-                    <Text style={{ color: colors.text, marginLeft: 8 }}>Loading stases...</Text>
-                  </View>
-                ) : (
-                  <ScrollView style={styles.dropdownScrollView}>
-                    {stases.map((stase) => (
-                      <TouchableOpacity
-                        key={stase.id}
-                        style={[
-                          styles.dropdownItem,
-                          studentForm.stase_id === stase.id && {
-                            backgroundColor: colors.tint + '20',
-                          },
-                        ]}
-                        onPress={() => handleStaseSelect(stase.id)}
-                      >
-                        <View style={styles.dropdownItemContent}>
-                          <Text
-                            style={[
-                              styles.dropdownItemText,
-                              { color: colors.text },
-                              studentForm.stase_id === stase.id && { color: colors.tint, fontWeight: "bold" },
-                            ]}
-                          >
-                            {stase.name}
-                          </Text>
-                          {studentForm.stase_id === stase.id && (
-                            <Ionicons name="checkmark" size={20} color={colors.tint} />
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-              </View>
+              <TouchableOpacity
+                style={[
+                  styles.input,
+                  styles.selector,
+                  {
+                    backgroundColor: colors.inputBackground,
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+                onPress={() => setShowStaseSelector(true)}
+                disabled={loadingStases}
+              >
+                <Text
+                  style={{
+                    color: studentForm.stase_id ? colors.text : colors.icon,
+                    flex: 1,
+                  }}
+                >
+                  {studentForm.stase_id
+                    ? stases.find((s) => s.id === studentForm.stase_id)?.name || "Pilih stase"
+                    : "Pilih stase"}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={colors.icon} />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.formGroup}>
               <Text style={[styles.label, { color: colors.text }]}>Kelompok</Text>
-              <View style={[styles.dropdownContainer, { backgroundColor: colors.background }]}>
-                {loadingGroups ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color={colors.tint} />
-                    <Text style={{ color: colors.text, marginLeft: 8 }}>Loading groups...</Text>
-                  </View>
-                ) : !studentForm.stase_id ? (
-                  <View style={[styles.dropdownPlaceholder, { borderColor: colors.inputBorder }]}>
-                    <Text style={[styles.placeholderText, { color: colors.icon }]}>
-                      Pilih stase terlebih dahulu
-                    </Text>
-                  </View>
-                ) : groups.length === 0 ? (
-                  <View style={[styles.dropdownPlaceholder, { borderColor: colors.inputBorder }]}>
-                    <Text style={[styles.placeholderText, { color: colors.icon }]}>
-                      Tidak ada kelompok tersedia untuk stase ini
-                    </Text>
-                  </View>
-                ) : (
-                  <ScrollView style={styles.dropdownScrollView}>
-                    {groups.map((group) => (
-                      <TouchableOpacity
-                        key={group.id}
-                        style={[
-                          styles.dropdownItem,
-                          studentForm.group_id === group.id && {
-                            backgroundColor: colors.tint + '20',
-                          },
-                        ]}
-                        onPress={() => handleStudentInputChange("group_id", group.id)}
-                      >
-                        <View style={styles.dropdownItemContent}>
-                          <Text
-                            style={[
-                              styles.dropdownItemText,
-                              { color: colors.text },
-                              studentForm.group_id === group.id && { color: colors.tint, fontWeight: "bold" },
-                            ]}
-                          >
-                            {group.name}
-                          </Text>
-                          {studentForm.group_id === group.id && (
-                            <Ionicons name="checkmark" size={20} color={colors.tint} />
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-              </View>
+              <TouchableOpacity
+                style={[
+                  styles.input,
+                  styles.selector,
+                  {
+                    backgroundColor: colors.inputBackground,
+                    borderColor: colors.inputBorder,
+                    opacity: !studentForm.stase_id ? 0.7 : 1,
+                  },
+                ]}
+                onPress={() => {
+                  if (studentForm.stase_id) setShowGroupSelector(true);
+                }}
+                disabled={!studentForm.stase_id || loadingGroups}
+              >
+                <Text
+                  style={{
+                    color:
+                      !studentForm.stase_id
+                        ? colors.icon
+                        : studentForm.group_id
+                        ? colors.text
+                        : colors.icon,
+                    flex: 1,
+                  }}
+                >
+                  {!studentForm.stase_id
+                    ? "Pilih stase terlebih dahulu"
+                    : studentForm.group_id
+                    ? groups.find((g) => g.id === studentForm.group_id)?.name || "Pilih kelompok"
+                    : groups.length === 0
+                    ? "Tidak ada kelompok tersedia"
+                    : "Pilih kelompok"}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={colors.icon} />
+              </TouchableOpacity>
             </View>
           </View>
         </Card>
+        
+        <View style={styles.formContainer}>
+          <PrimaryButton
+            label="Simpan Profil"
+            onPress={saveStudentProfile}
+            loading={saving}
+            disabled={saving}
+            style={styles.saveButton}
+          />
+          
+          <TouchableOpacity
+            style={[styles.deleteButton, { borderColor: colors.error }]}
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+          >
+            <Text style={[styles.deleteButtonText, { color: colors.error }]}>
+              {deletingAccount ? "Menghapus..." : "Hapus Akun"}
+            </Text>
+            {deletingAccount && <ActivityIndicator size="small" color={colors.error} style={{ marginLeft: 8 }} />}
+          </TouchableOpacity>
+        </View>
+
+        <BottomSheetSelector
+          visible={showStaseSelector}
+          title="Pilih Stase"
+          items={stases.map((s) => ({ id: s.id, name: s.name }))}
+          selectedId={studentForm.stase_id}
+          loading={loadingStases}
+          emptyText="Tidak ada stase tersedia"
+          onSelect={(item) => {
+            handleStaseSelect(item.id);
+            setShowStaseSelector(false);
+          }}
+          onClose={() => setShowStaseSelector(false)}
+        />
+
+        <BottomSheetSelector
+          visible={showGroupSelector}
+          title="Pilih Kelompok"
+          items={groups.map((g) => ({ id: g.id, name: g.name }))}
+          selectedId={studentForm.group_id}
+          loading={loadingGroups}
+          emptyText={
+            !studentForm.stase_id
+              ? "Pilih stase terlebih dahulu"
+              : "Tidak ada kelompok tersedia"
+          }
+          onSelect={(item) => {
+            handleStudentInputChange("group_id", item.id);
+            setShowGroupSelector(false);
+          }}
+          onClose={() => setShowGroupSelector(false)}
+        />
       </Animated.View>
     );
   };
@@ -853,38 +864,30 @@ console.log(userInfo);
 
         <View style={styles.formGroup}>
           <Text style={[styles.label, { color: colors.text }]}>Stase</Text>
-          {loadingStases ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={colors.tint} />
-              <Text style={{ color: colors.text, marginLeft: 8 }}>Loading stases...</Text>
-            </View>
-          ) : (
-            <View style={styles.pickerContainer}>
-              {stases.map((stase) => (
-                <TouchableOpacity
-                  key={stase.id}
-                  style={[
-                    styles.staseOption,
-                    advisorForm.stase_id === stase.id && {
-                      backgroundColor: `${colors.tint}20`,
-                      borderColor: colors.tint,
-                    },
-                  ]}
-                  onPress={() => handleAdvisorInputChange("stase_id", stase.id.toString())}
-                >
-                  <Text
-                    style={[
-                      styles.staseText,
-                      { color: colors.text },
-                      advisorForm.stase_id === stase.id && { color: colors.tint, fontWeight: "bold" },
-                    ]}
-                  >
-                    {stase.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+          <TouchableOpacity
+            style={[
+              styles.input,
+              styles.selector,
+              {
+                backgroundColor: colors.inputBackground,
+                borderColor: colors.inputBorder,
+              },
+            ]}
+            onPress={() => setShowAdvisorStaseSelector(true)}
+            disabled={loadingStases}
+          >
+            <Text
+              style={{
+                color: advisorForm.stase_id ? colors.text : colors.icon,
+                flex: 1,
+              }}
+            >
+              {advisorForm.stase_id
+                ? stases.find((s) => s.id === advisorForm.stase_id)?.name || "Pilih stase"
+                : "Pilih stase"}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color={colors.icon} />
+          </TouchableOpacity>
         </View>
 
         {/* Only show NPWP and NIP fields for academic advisors */}
@@ -959,6 +962,20 @@ console.log(userInfo);
           loading={saving}
           disabled={saving}
           style={styles.saveButton}
+        />
+
+        <BottomSheetSelector
+          visible={showAdvisorStaseSelector}
+          title="Pilih Stase"
+          items={stases.map((s) => ({ id: s.id, name: s.name }))}
+          selectedId={advisorForm.stase_id}
+          loading={loadingStases}
+          emptyText="Tidak ada stase tersedia"
+          onSelect={(item) => {
+            handleAdvisorInputChange("stase_id", item.id.toString());
+            setShowAdvisorStaseSelector(false);
+          }}
+          onClose={() => setShowAdvisorStaseSelector(false)}
         />
       </View>
     );
@@ -1283,6 +1300,12 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  selector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 12,
   },
   animatedContainer: {
     marginBottom: 16,
