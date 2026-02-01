@@ -31,7 +31,14 @@
       "permissions": ["CAMERA"],
       "intentFilters": [
         {
-          "autoVerify": true
+          "action": "android.intent.action.VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "makuta"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
