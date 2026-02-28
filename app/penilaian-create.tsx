@@ -257,7 +257,9 @@ export default function PenilaianCreateScreen() {
       const response = await api.createManualSubActivityScoresBulk(token!, assessmentData);
       
       if (!response.success) {
-        throw new Error(response.message || "Gagal menyimpan penilaian");
+        openMessageModal("Error", response.message || "Gagal menyimpan penilaian");
+        setSubmitting(false);
+        return;
       }
 
       openMessageModal(
@@ -276,7 +278,10 @@ export default function PenilaianCreateScreen() {
       );
     } catch (error) {
       console.error("Error submitting assessment:", error);
-      openMessageModal("Error", "Gagal menyimpan penilaian");
+      openMessageModal(
+        "Error",
+        error instanceof Error ? error.message : "Gagal menyimpan penilaian"
+      );
     } finally {
       setSubmitting(false);
     }

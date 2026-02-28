@@ -787,6 +787,15 @@ export const api = {
     const options = createRequestOptions("POST", data, token);
     return fetchWithTimeout<ActivityData>(url, options);
   },
+ 
+  deleteActivity: async (
+    token: string,
+    activityId: number
+  ): Promise<ApiResponse<any>> => {
+    const url = `${API_URL}${ENDPOINTS.ACTIVITIES}/${activityId}`;
+    const options = createRequestOptions("DELETE", undefined, token);
+    return fetchWithTimeout<any>(url, options);
+  },
 
   // Get all clinic advisors
   getClinicAdvisors: async (

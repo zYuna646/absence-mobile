@@ -57,6 +57,7 @@ export default function KegiatanScreen() {
     clinic_advisor_id: 0,
   });
   const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Generic message/alert modal state
   type ModalButton = { label: string; onPress: () => void; type?: "default" | "primary" | "destructive" };
@@ -297,6 +298,43 @@ export default function KegiatanScreen() {
       openMessageModal("Error", "Gagal memperbarui ruangan");
       setUpdating(false);
     }
+  };
+ 
+  const handleDeleteConfirm = () => {
+    if (!token || !selectedActivity) return;
+    openMessageModal("Hapus Ruangan", "Menghapus ruangan akan menghapus data terkait. Lanjutkan?", [
+      { label: "Batal", type: "default", onPress: () => setMessageModalVisible(false) },
+      {
+        label: "Hapus",
+        type: "destructive",
+        onPress: async () => {
+          setMessageModalVisible(false);
+          try {
+            setDeleting(true);
+            const response = await api.deleteActivity(token, selectedActivity.id);
+            if (response.success) {
+              openMessageModal("Success", "Ruangan berhasil dihapus", [
+                {
+                  label: "OK",
+                  type: "primary",
+                  onPress: () => {
+                    setMessageModalVisible(false);
+                    setShowEditModal(false);
+                    loadActivities();
+                  },
+                },
+              ]);
+            } else {
+              openMessageModal("Error", response.message || "Gagal menghapus ruangan");
+            }
+          } catch (error) {
+            openMessageModal("Error", "Gagal menghapus ruangan");
+          } finally {
+            setDeleting(false);
+          }
+        },
+      },
+    ]);
   };
 
   // Toggle form visibility
@@ -819,6 +857,16 @@ export default function KegiatanScreen() {
               loading={updating}
               disabled={updating}
               style={styles.saveButton}
+            />
+          )}
+          
+          {role === "advisor" && (
+            <PrimaryButton
+              label="Hapus Ruangan"
+              onPress={handleDeleteConfirm}
+              loading={deleting}
+              disabled={deleting}
+              style={[styles.saveButton, { backgroundColor: colors.error || "#dc3545" }]}
             />
           )}
         </View>
