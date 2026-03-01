@@ -26,10 +26,12 @@ module.exports = ({ config }) => {
             ios: {
               useFrameworks: "static",
               useModularHeaders: true,
+              buildReactNativeFromSource: true,
             },
           },
         ],
       ],
+    },
     },
   };
 };

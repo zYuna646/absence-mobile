@@ -75,7 +75,8 @@
           },
           "ios": {
             "useFrameworks": "static",
-            "useModularHeaders": true
+            "useModularHeaders": true,
+            "buildReactNativeFromSource": true
           }
         }
       ],
