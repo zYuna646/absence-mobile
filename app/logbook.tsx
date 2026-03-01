@@ -641,22 +641,24 @@ export default function LogbookScreen() {
                           </Text>
                           <View style={[styles.pickerWrapper, { borderColor: colors.inputBorder }]}>
                             <Picker
-                              selectedValue={selection.categoryId}
+                              key={`catPicker-${index}`}
+                              selectedValue={Platform.OS === "ios" ? String(selection.categoryId) : selection.categoryId}
                               enabled={!selection.isDefault}
                               onValueChange={(itemValue) => {
                                 if (selection.isDefault) return;
+                                const value = Platform.OS === "ios" ? Number(itemValue) : itemValue;
                                 const newSelections = [...selectedAdditionalActivities];
-                                newSelections[index] = { categoryId: itemValue, subCategoryId: 0 };
+                                newSelections[index] = { categoryId: value, subCategoryId: 0 };
                                 setSelectedAdditionalActivities(newSelections);
                               }}
                               style={{ color: colors.text }}
                             >
-                              <Picker.Item label="Pilih Kategori Aktivitas" value={0} />
+                              <Picker.Item label="Pilih Kategori Aktivitas" value={Platform.OS === "ios" ? "0" : 0} />
                               {validCategories.map((cat) => (
                                 <Picker.Item 
                                   key={`cat-${cat.id}`} 
                                   label={cat.name} 
-                                  value={cat.id} 
+                                  value={Platform.OS === "ios" ? String(cat.id) : cat.id} 
                                 />
                               ))}
                             </Picker>
@@ -671,22 +673,24 @@ export default function LogbookScreen() {
                             </Text>
                             <View style={[styles.pickerWrapper, { borderColor: colors.inputBorder }]}>
                             <Picker
-                              selectedValue={selection.subCategoryId}
+                              key={`subPicker-${selection.categoryId}-${index}`}
+                              selectedValue={Platform.OS === "ios" ? String(selection.subCategoryId) : selection.subCategoryId}
                               enabled={!selection.isDefault}
                               onValueChange={(itemValue) => {
                                 if (selection.isDefault) return;
+                                const value = Platform.OS === "ios" ? Number(itemValue) : itemValue;
                                 const newSelections = [...selectedAdditionalActivities];
-                                newSelections[index] = { ...newSelections[index], subCategoryId: itemValue };
+                                newSelections[index] = { ...newSelections[index], subCategoryId: value };
                                 setSelectedAdditionalActivities(newSelections);
                               }}
                               style={{ color: colors.text }}
                             >
-                              <Picker.Item label="Pilih Aktivitas" value={0} />
+                              <Picker.Item label="Pilih Aktivitas" value={Platform.OS === "ios" ? "0" : 0} />
                               {selectedCategorySubCategories?.map((sub: any) => (
                                 <Picker.Item 
                                     key={`sub-${sub.id}`} 
                                     label={sub.name} 
-                                    value={sub.id} 
+                                    value={Platform.OS === "ios" ? String(sub.id) : sub.id} 
                                   />
                                 ))}
                               </Picker>
