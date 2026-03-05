@@ -482,21 +482,29 @@ export const api = {
     const url = `${API_URL}/logbooks/check-in`;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+      const uploadOnce = async (timeoutMs: number) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+            signal: controller.signal,
+          });
+          return response;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      };
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-        body: formData,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      let response = await uploadOnce(45000);
+      if (!response.ok && response.status === 408) {
+        response = await uploadOnce(60000);
+      }
 
       const responseText = await response.text();
       let data;
@@ -616,21 +624,29 @@ export const api = {
     const url = `${API_URL}/logbooks/${checkInId}/check-out`;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+      const uploadOnce = async (timeoutMs: number) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+            signal: controller.signal,
+          });
+          return response;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      };
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-        body: formData,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      let response = await uploadOnce(45000);
+      if (!response.ok && response.status === 408) {
+        response = await uploadOnce(60000);
+      }
 
       const responseText = await response.text();
       let data;

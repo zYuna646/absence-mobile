@@ -196,9 +196,8 @@ export default function LogbookScreen() {
     try {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
+        allowsEditing: false,
+        quality: 0.6,
       });
       
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -260,11 +259,27 @@ export default function LogbookScreen() {
           { label: "OK", onPress: () => router.back() }
         ]);
       } else {
-        openMessageModal("Error", response.message || "Gagal menyimpan check-in");
+        const msg = response.message || "Gagal menyimpan check-in";
+        if (msg.toLowerCase().includes("timeout")) {
+          openMessageModal("Koneksi Lambat", "Permintaan kedaluwarsa. Coba lagi?", [
+            { label: "Batal" },
+            { label: "Coba Lagi", onPress: () => handleCheckIn() }
+          ]);
+        } else {
+          openMessageModal("Error", msg);
+        }
       }
     } catch (error) {
       console.error("Error submitting logbook:", error);
-      openMessageModal("Error", "Gagal menyimpan check-in");
+      const msg = error instanceof Error ? error.message : "Gagal menyimpan check-in";
+      if (msg.toLowerCase().includes("timeout")) {
+        openMessageModal("Koneksi Lambat", "Permintaan kedaluwarsa. Coba lagi?", [
+          { label: "Batal" },
+          { label: "Coba Lagi", onPress: () => handleCheckIn() }
+        ]);
+      } else {
+        openMessageModal("Error", "Gagal menyimpan check-in");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -337,11 +352,27 @@ export default function LogbookScreen() {
           { label: "OK", onPress: () => router.back() }
         ]);
       } else {
-        openMessageModal("Error", response.message || "Gagal menyimpan check-out");
+        const msg = response.message || "Gagal menyimpan check-out";
+        if (msg.toLowerCase().includes("timeout")) {
+          openMessageModal("Koneksi Lambat", "Permintaan kedaluwarsa. Coba lagi?", [
+            { label: "Batal" },
+            { label: "Coba Lagi", onPress: () => handleCheckOut() }
+          ]);
+        } else {
+          openMessageModal("Error", msg);
+        }
       }
     } catch (error) {
       console.error("Error submitting check-out:", error);
-      openMessageModal("Error", "Gagal menyimpan check-out");
+      const msg = error instanceof Error ? error.message : "Gagal menyimpan check-out";
+      if (msg.toLowerCase().includes("timeout")) {
+        openMessageModal("Koneksi Lambat", "Permintaan kedaluwarsa. Coba lagi?", [
+          { label: "Batal" },
+          { label: "Coba Lagi", onPress: () => handleCheckOut() }
+        ]);
+      } else {
+        openMessageModal("Error", "Gagal menyimpan check-out");
+      }
     } finally {
       setSubmitting(false);
     }

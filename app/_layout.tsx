@@ -24,12 +24,16 @@ function AuthStateListener({ children }: { children: React.ReactNode }) {
 
     const inAuthGroup = pathname === '/login' || pathname === '/register';
     
-    if (!isLoggedIn && !inAuthGroup) {
-      // Redirect to login if not logged in and not already on login screen
-      router.replace('/login');
-    } else if (isLoggedIn && inAuthGroup) {
-      // Redirect to tabs if logged in and on login screen
-      router.replace('/(tabs)');
+    try {
+      if (!isLoggedIn && !inAuthGroup) {
+        // Redirect to login if not logged in and not already on login screen
+        router.replace('/login');
+      } else if (isLoggedIn && inAuthGroup) {
+        // Redirect to tabs if logged in and on login screen
+        router.replace('/(tabs)');
+      }
+    } catch (e) {
+      console.error('Navigation error:', e);
     }
   }, [isLoggedIn, isLoading, pathname]);
 

@@ -8,6 +8,7 @@ import {
   View,
   TextStyle,
   TouchableOpacity,
+  InteractionManager,
 } from "react-native";
 import { router, usePathname } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -30,6 +31,10 @@ export default function TabLayout() {
   const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
 
+  const setShowMenuSafely = (visible: boolean) => {
+    InteractionManager.runAfterInteractions(() => setShowMenu(visible));
+  };
+
   useEffect(() => {
     // Update current role when role changes
     if (role) {
@@ -44,12 +49,16 @@ export default function TabLayout() {
       // Skip session check during initial loading
       if (isLoading) return;
 
-      // Check if the user has a valid session
-      const isSessionValid = await verifySession();
+      try {
+        // Check if the user has a valid session
+        const isSessionValid = await verifySession();
 
-      if (!isSessionValid) {
-        // If session is invalid, redirect to login
-        router.replace("/login");
+        if (!isSessionValid) {
+          // If session is invalid, redirect to login
+          router.replace("/login");
+        }
+      } catch (e) {
+        console.error("Session verification failed:", e);
       }
     };
 
@@ -188,8 +197,10 @@ export default function TabLayout() {
                     key={item.route}
                     style={styles.menuItem}
                     onPress={() => {
-                      setShowMenu(false);
-                      router.push(item.route as any);
+                      setShowMenuSafely(false);
+                      InteractionManager.runAfterInteractions(() => {
+                        router.push(item.route as any);
+                      });
                     }}
                   >
                     {item.lib === "ion" ? (
@@ -221,7 +232,7 @@ export default function TabLayout() {
               </View>
               <TouchableOpacity
                 style={styles.menuClose}
-                onPress={() => setShowMenu(false)}
+                onPress={() => setShowMenuSafely(false)}
               >
                 <Text style={[styles.menuCloseText, { color: colors.text }]}>
                   Tutup
@@ -236,7 +247,7 @@ export default function TabLayout() {
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={() => router.replace("/kegiatan")}
-          onLongPress={() => setShowMenu(true)}
+          onLongPress={() => setShowMenuSafely(true)}
           style={[styles.fab, { backgroundColor: colors.tint }]}
         >
           <MaterialIcons name="dashboard" size={28} color="white" />

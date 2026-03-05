@@ -4,6 +4,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import { Platform } from 'react-native';
 import { NotificationService, NotificationData } from '@/services/notificationService';
 import { useUser } from './UserContext';
+import { api } from '@/services/api';
 import messaging from '@react-native-firebase/messaging';
 
 interface NotificationContextType {
@@ -23,7 +24,7 @@ interface NotificationProviderProps {
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { userInfo, token } = useUser();
+  const { userInfo, token: authToken } = useUser();
 
   // Open file manager to file location
   const openFileManager = async (filePath: string) => {
@@ -55,13 +56,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   useEffect(() => {
     const initializeNotifications = async () => {
       try {
-        const token = await NotificationService.initialize();
-        setPushToken(token);
+        const obtainedPushToken = await NotificationService.initialize();
+        setPushToken(obtainedPushToken);
         setIsInitialized(true);
 
         // Register device if user is logged in
-        if (userInfo && token) {
-          await NotificationService.registerDevice(token, userInfo.id.toString());
+        if (userInfo && authToken && obtainedPushToken) {
+          await NotificationService.registerDevice(authToken, userInfo.id.toString());
         }
       } catch (error) {
         console.error('Failed to initialize notifications:', error);
@@ -75,13 +76,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Register device when user logs in
   useEffect(() => {
     const registerDevice = async () => {
-      if (userInfo && token && pushToken) {
-        await NotificationService.registerDevice(token, userInfo.id.toString());
+      if (userInfo && authToken && pushToken) {
+        await NotificationService.registerDevice(authToken, userInfo.id.toString());
       }
     };
 
     registerDevice();
-  }, [userInfo, token, pushToken]);
+  }, [userInfo, authToken, pushToken]);
   
   // Listen for FCM token changes
   useEffect(() => {
@@ -89,22 +90,27 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       console.log('FCM Token refreshed:', newToken);
       
       // Re-register device with new FCM token if user is logged in
-      if (userInfo && token && pushToken) {
-        // Register with notification service (for backward compatibility)
-        await NotificationService.registerDevice(token, userInfo.id.toString());
-        
-        // Register with new endpoint
-        const api = require('@/services/api').default;
-        await api.registerDevice(
-          token,
-          newToken,
-          Platform.OS === "android" ? "android" : "ios"
-        );
+      try {
+        if (userInfo && authToken && pushToken && newToken) {
+          // Register with notification service (for backward compatibility)
+          await NotificationService.registerDevice(authToken, userInfo.id.toString());
+          
+          // Register with new endpoint if token is valid
+          if (newToken) {
+            await api.registerDevice(
+              authToken,
+              newToken,
+              Platform.OS === "android" ? "android" : "ios"
+            );
+          }
+        }
+      } catch (e) {
+        console.error('Failed to register refreshed FCM token:', e);
       }
     });
     
     return () => fcmTokenListener();
-  }, [userInfo, token, pushToken]);
+  }, [userInfo, authToken, pushToken]);
 
   // Handle notification received while app is in foreground
   useEffect(() => {
@@ -124,6 +130,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       
       // Handle different types of notifications based on data
       if (data?.type === 'file_download' && data?.filePath) {
+        if (Platform.OS !== 'android') {
+          console.log('File manager open is only supported on Android in this context');
+          return;
+        }
         // Handle file download notification tap
         openFileManager(data.filePath);
       } else if (data?.type === 'attendance_reminder') {

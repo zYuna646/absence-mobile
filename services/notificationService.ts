@@ -83,10 +83,14 @@ export class NotificationService {
 
       // Get push tokens for real device
       if (Device.isDevice) {
-        // Get Expo Push Token
-        const expoToken = await Notifications.getExpoPushTokenAsync({
-          projectId: Constants.expoConfig?.extra?.eas?.projectId,
-        });
+        // Get Expo Push Token (guard projectId in case config isn't available)
+        let expoToken;
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+        if (projectId) {
+          expoToken = await Notifications.getExpoPushTokenAsync({ projectId });
+        } else {
+          expoToken = await Notifications.getExpoPushTokenAsync();
+        }
         this.expoPushToken = expoToken.data;
         console.log('Expo Push Token:', expoToken.data);
 
