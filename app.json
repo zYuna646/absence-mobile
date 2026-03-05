@@ -2,7 +2,7 @@
   "expo": {
     "name": "Makuta",
     "slug": "makuta",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/ios/AppIcon.appiconset/ItunesArtwork@2x.png",
     "scheme": "makuta",
